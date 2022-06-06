@@ -2,6 +2,6 @@ const express = require('express');
 const employeeController = require('../controllers/EmployeeController');
 const router = express.Router();
 
-router.post('/getListEmployee', employeeController.getListEmployee);
+router.get('/getListEmployee', employeeController.getListEmployee);
 
 module.exports = router;
