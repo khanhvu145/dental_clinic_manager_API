@@ -24,6 +24,7 @@ app.use(morgan("common"));
 app.use('/api/employee', employeeRoute);
 
 //LISTEN PORT
-app.listen(8000, () => {
-    console.log(`Server Started at ${8000}`)
+app.listen(process.env.PORT || 8000, () => {
+    const port = process.env.PORT || 8000;
+    console.log(`Server Started at ${port}`)
 })
