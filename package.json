@@ -1,0 +1,30 @@
+{
+  "name": "dental_clinic_manager_api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/khanhvu145/dental_clinic_manager_API.git"
+  },
+  "author": "KhanhVN",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/khanhvu145/dental_clinic_manager_API/issues"
+  },
+  "homepage": "https://github.com/khanhvu145/dental_clinic_manager_API#readme",
+  "dependencies": {
+    "body-parser": "^1.20.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.1",
+    "express": "^4.18.1",
+    "lodash": "^4.17.21",
+    "mongoose": "^6.3.5",
+    "morgan": "^1.10.0",
+    "nodemon": "^2.0.16"
+  }
+}
