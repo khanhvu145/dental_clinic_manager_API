@@ -7,7 +7,7 @@ const AccountController = {
         try {
             const account = await Account.find({ username: req.body.username, password: req.body.password });
             var token = jwt.sign({account}, 'secretKey');
-            if(account){
+            if(account.length > 0){
                 res.status(200).json({ success: true, data: { token: token } });
             }
             else{
