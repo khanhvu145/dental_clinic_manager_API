@@ -2,13 +2,29 @@ const mongoose = require('mongoose');
 const mongooseDelete = require('mongoose-delete');
 const Schema = mongoose.Schema;
 
-const Patient = new Schema(
+const Customer = new Schema(
     {
-        fullname: { 
+        code: { 
             type: String, 
             required: true 
         },
-        dateofbirth: { 
+        name: { 
+            type: String, 
+            required: true 
+        },
+        physicalId: { 
+            type: String, 
+            required: true 
+        },
+        dateOfIssue: { 
+            type: Date, 
+            required: true 
+        },
+        placeOfIssue: { 
+            type: String, 
+            required: true 
+        },
+        birthday: { 
             type: Date, 
             required: true 
         },
@@ -23,15 +39,14 @@ const Patient = new Schema(
         address: { 
             type: Object,
             properties: { 
-                building: { type: String},
-                ward: { type: String},
-                district: { type: String},
-                city: { type: String}
+                building: { type: String },
+                wardId: { type: Int64, default: 0 },
+                districtId: { type: Int64, default: 0 },
+                provinceId: { type: Int64, default: 0 },
             }
         },
         email: { 
-            type: String, 
-            required: true 
+            type: String
         },
         image: { 
             type: Object,
@@ -41,17 +56,17 @@ const Patient = new Schema(
                 imgBase64: { type: String, required: true},
             }
         },
-        allergies: [String],
-        background_diseases:[String]
+        allergies: [Schema.Types.ObjectId],
+        background_diseases:[Schema.Types.ObjectId]
     },
     {
         timestamps: true,
     },
 );
 
-Patient.plugin(mongooseDelete, { 
+Customer.plugin(mongooseDelete, { 
     overrideMethods: 'all',
     deletedAt : true, 
 });
 
-module.exports = mongoose.model('Patient', Patient);
+module.exports = mongoose.model('Customer', Customer);

@@ -5,7 +5,9 @@ const mongoose = require('mongoose');
 var bodyParser = require('body-parser');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
+const jwt = require('jsonwebtoken');
 const employeeRoute = require('./routes/employee');
+const accountRoute = require('./routes/account');
 
 //CONNECT DATABASE
 dotenv.config();
@@ -22,6 +24,7 @@ app.use(morgan("common"));
 
 //ROUTES
 app.use('/api/employee', employeeRoute);
+app.use('/api/account', accountRoute);
 
 //LISTEN PORT
 app.listen(process.env.PORT || 8000, () => {
