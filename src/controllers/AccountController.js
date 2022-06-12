@@ -22,7 +22,7 @@ const AccountController = {
             var accountData = jwt.verify(req.token, 'secretKey');
             const employeeId = accountData.account[0].employeeId;
             const employeeData = await Employee.find({ _id: employeeId });
-            res.status(200).json({ success: true, data : employeeData });
+            res.status(200).json({ success: true, data : employeeData[0] });
         }catch(err){
             res.status(500).json(err)
         }
