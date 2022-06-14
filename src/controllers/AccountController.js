@@ -1,5 +1,6 @@
 const Account = require('../models/Account');
 const Employee = require('../models/Employee');
+const Role = require('../models/Role');
 const jwt = require('jsonwebtoken');
 
 const AccountController = {
@@ -21,8 +22,12 @@ const AccountController = {
         try{
             var accountData = jwt.verify(req.token, 'secretKey');
             const employeeId = accountData.account[0].employeeId;
+            const roleId = accountData.account[0].roleId;
+
             const employeeData = await Employee.find({ _id: employeeId });
-            res.status(200).json({ success: true, data : employeeData[0] });
+            const roleData = await Role.find({ _id: roleId });
+
+            res.status(200).json({ success: true, data: employeeData[0], role: roleData[0].name });
         }catch(err){
             res.status(500).json(err)
         }
