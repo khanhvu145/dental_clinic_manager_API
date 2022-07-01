@@ -16,12 +16,10 @@ const Employee = new Schema({
         required: true 
     },
     dateOfIssue: { 
-        type: Date, 
-        required: true 
+        type: Date,
     },
     placeOfIssue: { 
-        type: String, 
-        required: true 
+        type: String,
     },
     email: { 
         type: String
@@ -31,12 +29,10 @@ const Employee = new Schema({
         required: true 
     },
     birthday: { 
-        type: Date, 
-        required: true 
+        type: Date,
     },
     gender: { 
-        type: String, 
-        required: true 
+        type: String,
     },
     address: { 
         type: Object,
@@ -50,11 +46,18 @@ const Employee = new Schema({
     image: { 
         type: Object,
         properties: { 
-            imgName: { type: String, unique: true, required: true},
-            imgType: { type: String, required: true},
-            imgBase64: { type: String, required: true},
+            imageUrl: { type: String, required: true},
+            imageFile: { type: String },
         }
     },
+    position: {
+        type: String,
+        required: true 
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    }
 },
 {
     timestamps: true,

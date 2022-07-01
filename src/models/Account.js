@@ -21,6 +21,10 @@ const Account = new Schema({
         type: Schema.Types.ObjectId, 
         required: true,
         ref: "Role"
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     }
 },
 {

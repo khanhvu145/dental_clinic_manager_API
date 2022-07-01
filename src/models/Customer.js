@@ -57,7 +57,11 @@ const Customer = new Schema(
             }
         },
         allergies: [Schema.Types.ObjectId],
-        background_diseases:[Schema.Types.ObjectId]
+        background_diseases:[Schema.Types.ObjectId],
+        active: {
+            type: Number,
+            default: 1
+        }
     },
     {
         timestamps: true,

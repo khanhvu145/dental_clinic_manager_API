@@ -6,6 +6,10 @@ const Role = new Schema({
     name: { 
         type: String,
         required: true 
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     }
 },
 {
