@@ -18,15 +18,22 @@
   },
   "homepage": "https://github.com/khanhvu145/dental_clinic_manager_API#readme",
   "dependencies": {
+    "@types/node": "^18.0.5",
+    "bcrypt": "^5.0.1",
     "body-parser": "^1.20.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.1",
     "express": "^4.18.1",
+    "firebase": "^9.9.1",
+    "firebase-admin": "^11.0.0",
+    "googleapis": "^105.0.0",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.21",
+    "moment": "^2.29.4",
     "mongoose": "^6.3.5",
     "mongoose-delete": "^0.5.4",
     "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
     "nodemon": "^2.0.16"
   }
 }

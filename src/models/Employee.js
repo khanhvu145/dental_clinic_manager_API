@@ -5,7 +5,6 @@ const Schema = mongoose.Schema;
 const Employee = new Schema({
     code: { 
         type: String, 
-        required: true 
     },
     name: { 
         type: String, 
@@ -43,17 +42,24 @@ const Employee = new Schema({
             provinceId: { type: Number, default: 0 },
         }
     },
-    image: { 
-        type: Object,
-        properties: { 
-            imageUrl: { type: String, required: true},
-            imageFile: { type: String },
-        }
-    },
-    position: {
+    img: {
         type: String,
-        required: true 
     },
+    imageFile: {
+        type: Object,
+        default: null
+    },
+    // image: { 
+    //     type: Object,
+    //     properties: { 
+    //         imageUrl: { type: String, required: true},
+    //         imageFile: { type: String },
+    //     }
+    // },
+    // position: {
+    //     type: Schema.Types.ObjectId, 
+    //     required: true 
+    // },
     isActive: {
         type: Boolean,
         default: true
