@@ -9,8 +9,10 @@ admin.initializeApp({
   storageBucket: firebaseprojectid
 })
 // Cloud storage
-const bucket = admin.storage().bucket()
+const bucket = admin.storage().bucket();
+const storage = admin.storage();
 
 module.exports = {
-  bucket
+  bucket,
+  storage
 }

@@ -4,6 +4,6 @@ module.exports = (path) => {
     return url = path.getSignedUrl({
         version: 'v2',
         action: 'read',
-        expires: Date.now() + 1000 * 60 * 60
+        expires: '12-31-3000'
     });
 };

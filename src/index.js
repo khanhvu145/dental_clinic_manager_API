@@ -6,8 +6,9 @@ var bodyParser = require('body-parser');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
-const employeeRoute = require('./routes/employee');
 const accountRoute = require('./routes/account');
+const accessgroupRoute = require('./routes/accessgroup');
+const userRoute = require('./routes/user');
 
 //CONNECT DATABASE
 dotenv.config();
@@ -23,8 +24,9 @@ app.use(cors());
 app.use(morgan("common"));
 
 //ROUTES
-app.use('/api/employee', employeeRoute);
 app.use('/api/account', accountRoute);
+app.use('/api/accessgroup', accessgroupRoute);
+app.use('/api/user', userRoute);
 
 //LISTEN PORT
 app.listen(process.env.PORT || 8000, () => {

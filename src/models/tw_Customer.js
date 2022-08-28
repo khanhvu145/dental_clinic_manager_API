@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const mongooseDelete = require('mongoose-delete');
 const Schema = mongoose.Schema;
 
-const Employee = new Schema({
+const tw_Customer = new Schema({
     code: { 
         type: String, 
     },
@@ -37,9 +37,9 @@ const Employee = new Schema({
         type: Object,
         properties: { 
             building: { type: String },
-            wardId: { type: Number, default: 0 },
-            districtId: { type: Number, default: 0 },
-            provinceId: { type: Number, default: 0 },
+            wardId: { type: Schema.Types.Decimal128, default: 0 },
+            districtId: { type: Schema.Types.Decimal128, default: 0 },
+            provinceId: { type: Schema.Types.Decimal128, default: 0 },
         }
     },
     img: {
@@ -49,29 +49,27 @@ const Employee = new Schema({
         type: Object,
         default: null
     },
-    // image: { 
-    //     type: Object,
-    //     properties: { 
-    //         imageUrl: { type: String, required: true},
-    //         imageFile: { type: String },
-    //     }
-    // },
-    // position: {
-    //     type: Schema.Types.ObjectId, 
-    //     required: true 
-    // },
     isActive: {
         type: Boolean,
         default: true
+    },
+    createdAt: {
+        type: Date,
+    },
+    createdBy: {
+        type: String,
+    },
+    updatedAt: {
+        type: Date,
+    },
+    updatedBy: {
+        type: String,
     }
-},
-{
-    timestamps: true,
 });
 
-Employee.plugin(mongooseDelete, { 
+tw_Customer.plugin(mongooseDelete, { 
     overrideMethods: 'all',
     deletedAt : true, 
 });
 
-module.exports = mongoose.model('Employee', Employee);
+module.exports = mongoose.model('tw_Customer', tw_Customer);
