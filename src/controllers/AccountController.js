@@ -13,6 +13,9 @@ const AccountController = {
             }
 
             const user = await User.findOne({ username: req.body.username });
+            if(user == null) {
+                return res.status(200).json({ success: false, error: 'Tài khoản hoặc mật khẩu không đúng', data: '' });
+            }
             //Kiểm tra trạng thái hoạt động của tài khoản
             if(!user.isActive){
                 return res.status(200).json({ success: false, error: 'Tài khoản đã ngưng hoạt động', data: '' });
@@ -47,7 +50,7 @@ const AccountController = {
                 return res.status(200).json({ success: false, error: 'Tài khoản hoặc mật khẩu không đúng', data: '' });
             }
         }catch(err){
-            return res.status(500).json({ success: false, error: err });
+            return res.status(200).json({ success: false, error: err });
         }
     },
     info: async (req, res) => {
