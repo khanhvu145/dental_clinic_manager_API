@@ -67,6 +67,14 @@ const tw_User = new Schema({
         type: Boolean,
         default: true
     },
+    type:{
+        type: Schema.Types.ObjectId,
+        ref: "tw_GeneralConfig"
+    },
+    source: {
+        type: Schema.Types.ObjectId,
+        ref: "tw_GeneralConfig"
+    },
     createdAt: {
         type: Date,
     },

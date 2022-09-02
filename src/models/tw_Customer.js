@@ -49,6 +49,12 @@ const tw_Customer = new Schema({
         type: Object,
         default: null
     },
+    customerGroup: {
+        type: String,
+    },
+    source: {
+        type: String,
+    },
     isActive: {
         type: Boolean,
         default: true

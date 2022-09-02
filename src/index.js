@@ -9,6 +9,8 @@ const jwt = require('jsonwebtoken');
 const accountRoute = require('./routes/account');
 const accessgroupRoute = require('./routes/accessgroup');
 const userRoute = require('./routes/user');
+const customerRoute = require('./routes/customer');
+const generalconfigRoute = require('./routes/generalconfig');
 
 //CONNECT DATABASE
 dotenv.config();
@@ -27,6 +29,8 @@ app.use(morgan("common"));
 app.use('/api/account', accountRoute);
 app.use('/api/accessgroup', accessgroupRoute);
 app.use('/api/user', userRoute);
+app.use('/api/customer', customerRoute);
+app.use('/api/generalconfig', generalconfigRoute);
 
 //LISTEN PORT
 app.listen(process.env.PORT || 8000, () => {

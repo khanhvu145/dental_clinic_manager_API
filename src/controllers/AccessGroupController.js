@@ -20,7 +20,7 @@ const AccessGroupController = {
                     accesses: formData.accesses ? formData.accesses : [],
                     isActive: formData.isActive,
                     createdAt: Date.now(),
-                    createdBy: formData.createdBy
+                    createdBy: formData.createdBy ? formData.createdBy : ''
                 });
                 const data = await newAccessGroup.save();
                 return res.status(200).json({ success: true, message: 'Tạo thành công', data: data });
@@ -30,7 +30,7 @@ const AccessGroupController = {
             }
         }
         catch(err){
-            return res.status(500).json({ success: false, error: err });
+            return res.status(200).json({ success: false, error: err });
         }
     },
     getById: async(req, res) => {
@@ -39,7 +39,7 @@ const AccessGroupController = {
             return res.status(200).json({ success: true, data: data });
         }
         catch(err){
-            return res.status(500).json({ success: false, error: err });
+            return res.status(200).json({ success: false, error: err });
         }
     },
     update: async(req, res) => {
@@ -57,12 +57,12 @@ const AccessGroupController = {
                 { _id: formData._id }, 
                 {
                     $set: { 
-                        name: formData.name, 
-                        note: formData.note,
-                        accesses: formData.accesses,
+                        name: formData.name ? formData.name : '', 
+                        note: formData.note ? formData.note : '',
+                        accesses: formData.accesses ? formData.accesses : [],
                         isActive: formData.isActive,
                         updatedAt: Date.now(),
-                        updatedBy: formData.updatedBy
+                        updatedBy: formData.updatedBy ? formData.updatedBy : ''
                     }
                 }
             );
@@ -70,7 +70,7 @@ const AccessGroupController = {
             return res.status(200).json({ success: true, message: 'Cập nhật thành công', data: data });
         }
         catch(err){
-            return res.status(500).json({ success: false, error: err });
+            return res.status(200).json({ success: false, error: err });
         }
     },
     getByQuery: async(req, res) => {
@@ -82,21 +82,21 @@ const AccessGroupController = {
             var data = await AccessGroup.find({
                 $and: [
                     { name: { $regex: filters.nameF, $options:"$i" } },
-                    { isActive: { $eq: filters.statusF } }
+                    { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
             }).sort(sorts).limit(pages.size).skip(pages.from);
 
             var total = await AccessGroup.find({
                 $and: [
                     { name: { $regex: filters.nameF, $options:"$i" } },
-                    { isActive: { $eq: filters.statusF } }
+                    { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
             }).count();
 
             return res.status(200).json({ success: true, data: data, total: total });
         }
         catch(err){
-            return res.status(500).json({ success: false, error: err });
+            return res.status(200).json({ success: false, error: err });
         }
     }
 }
