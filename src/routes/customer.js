@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.post('/create', multer.single('imageFile'), customerController.create);
 router.put('/update', multer.single('imageFile'), customerController.update);
+router.get('/getAll', customerController.getAll);
 router.get('/getById/:id/', customerController.getById);
 router.post('/getByQuery', customerController.getByQuery);
 

@@ -205,6 +205,15 @@ const CustomerController = {
             return res.status(200).json({ success: false, error: err });
         }
     },
+    getAll: async(req, res) => {
+        try{
+            var data = await Customer.find({ isActive: true });
+            return res.status(200).json({ success: true, data: data });
+        }
+        catch(err){
+            return res.status(200).json({ success: false, error: err });
+        }
+    }
 }
 
 module.exports = CustomerController;
