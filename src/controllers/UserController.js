@@ -87,6 +87,7 @@ const UserController = {
                     img: formData.img ? formData.img : '',
                     imageFile: null,
                     accessId: formData.accessId,
+                    position: formData.position ? formData.position : '',
                     isActive: formData.isActive ? formData.isActive : true,
                     createdAt: Date.now(),
                     createdBy: formData.createdBy ? formData.createdBy : ''
@@ -191,6 +192,7 @@ const UserController = {
                         iimg: formData.img ? formData.img : '',
                         imageFile: null,
                         accessId: formData.accessId,
+                        position: formData.position ? formData.position : '',
                         isActive: formData.isActive ? formData.isActive : true,
                         updatedAt: Date.now(),
                         updatedBy: formData.updatedBy ? formData.updatedBy : ''
@@ -229,6 +231,15 @@ const UserController = {
             }).count();
 
             return res.status(200).json({ success: true, data: data, total: total });
+        }
+        catch(err){
+            return res.status(200).json({ success: false, error: err });
+        }
+    },
+    getDentist: async(req, res) => {
+        try{
+            var data = await User.find({ isActive: true, position: 'dentist' });
+            return res.status(200).json({ success: true, data: data });
         }
         catch(err){
             return res.status(200).json({ success: false, error: err });

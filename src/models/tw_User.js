@@ -63,6 +63,9 @@ const tw_User = new Schema({
         required: true,
         ref: "tw_AccessGroup"
     },
+    position: {
+        type: String,
+    },
     isActive: {
         type: Boolean,
         default: true

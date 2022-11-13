@@ -2,25 +2,12 @@ const mongoose = require('mongoose');
 const mongooseDelete = require('mongoose-delete');
 const Schema = mongoose.Schema;
 
-const tw_Service = new Schema({
+const tw_ServiceGroup = new Schema({
     code: {
         type: String,
         required: true 
     },
     name: {
-        type: String,
-        required: true 
-    },
-    groupId: { 
-        type: Schema.Types.ObjectId, 
-        required: true,
-        ref: "tw_ServiceGroup"
-    },
-    price: { 
-        type: Schema.Types.Number,    
-        required: true 
-    },
-    unit: {
         type: String,
         required: true 
     },
@@ -45,9 +32,9 @@ const tw_Service = new Schema({
     }
 });
 
-tw_Service.plugin(mongooseDelete, { 
+tw_ServiceGroup.plugin(mongooseDelete, { 
     overrideMethods: 'all',
     deletedAt : true, 
 });
 
-module.exports = mongoose.model('tw_Service', tw_Service);
+module.exports = mongoose.model('tw_ServiceGroup', tw_ServiceGroup);

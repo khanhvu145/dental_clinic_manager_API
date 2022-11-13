@@ -35,7 +35,7 @@ const GeneralConfigController = {
                 }
             }
 
-            var data = await GeneralConfig.find({ type: type });
+            var data = await GeneralConfig.find({ type: type }).sort({ isActive: -1 });
 
             return res.status(200).json({ success: true, message: 'Lưu thành công', data: data });
         }
@@ -46,17 +46,16 @@ const GeneralConfigController = {
     getByQuery: async(req, res) => {
         try{
             var formData = req.body;
-
             var data = await GeneralConfig.find({
                 $and: [
                     { type: { $regex: formData.type, $options:"$i" } },
-                    { isActive: { $in: formData.isActive == null ? [true, false] : [formData.isActive] } }
+                    { isActive: { $in: formData.isActive == null ? [true, false] : formData.isActive } }
                 ]
-            });
+            }).sort({ isActive: -1 });
             var total = await GeneralConfig.find({
                 $and: [
                     { type: { $regex: formData.type, $options:"$i" } },
-                    { isActive: { $in: formData.isActive == null ? [true, false] : [formData.isActive] } }
+                    { isActive: { $in: [true, false] } }
                 ]
             }).count();
 

@@ -7,5 +7,6 @@ router.post('/create', multer.single('imageFile'), userController.create);
 router.put('/update', multer.single('imageFile'), userController.update);
 router.get('/getById/:id/', userController.getById);
 router.post('/getByQuery', userController.getByQuery);
+router.get('/getDentist', userController.getDentist);
 
 module.exports = router;

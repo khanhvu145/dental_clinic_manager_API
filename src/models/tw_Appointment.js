@@ -13,10 +13,10 @@ const tw_Appointment = new Schema({
         required: true,
         ref: "tw_Customer"
     },
-    serviceId: { 
+    serviceGroupId: { 
         type: Schema.Types.ObjectId, 
         required: true,
-        ref: "tw_Service"
+        ref: "tw_ServiceGroup"
     },
     timeFrom: {
         type: Date,
