@@ -12,6 +12,7 @@ const userRoute = require('./routes/user');
 const customerRoute = require('./routes/customer');
 const generalconfigRoute = require('./routes/generalconfig');
 const serviceRoute = require('./routes/service');
+const appointmentRoute = require('./routes/appointment');
 
 //CONNECT DATABASE
 dotenv.config();
@@ -33,6 +34,7 @@ app.use('/api/user', userRoute);
 app.use('/api/customer', customerRoute);
 app.use('/api/generalconfig', generalconfigRoute);
 app.use('/api/service', serviceRoute);
+app.use('/api/appointment', appointmentRoute);
 
 //LISTEN PORT
 app.listen(process.env.PORT || 8000, () => {
