@@ -19,12 +19,20 @@ const tw_Appointment = new Schema({
         required: true,
         ref: "tw_ServiceGroup"
     },
-    timeFrom: {
+    date: {
         type: Date,
         required: true,
     },
-    timeTo: {
-        type: Date,
+    time: {
+        type: String,
+        required: true,
+    },
+    duration: {
+        type: Schema.Types.Number,
+        required: true,
+    },
+    durationType: {
+        type: String,
         required: true,
     },
     type: {
@@ -33,9 +41,8 @@ const tw_Appointment = new Schema({
         ref: "tw_GeneralConfig"
     },
     status: {
-        type: Schema.Types.ObjectId,
-        required: true,
-        ref: "tw_GeneralConfig"
+        type: String,
+        required: true
     },
     note: {
         type: String,
@@ -55,7 +62,36 @@ const tw_Appointment = new Schema({
     },
     updatedBy: {
         type: String,
-    }
+    },
+    expireTime: {
+        type: Date,
+    },
+    cancelledAt: {
+        type: Date,
+    },
+    cancelReason: {
+        type: String,
+    },
+    timeFrom: {
+        type: Date,
+        default: function (){
+            var timeFrom = new Date(moment(this.date).format('YYYY/MM/DD') + ' ' + this.time);
+            return timeFrom;
+        }
+    },
+    timeTo: {
+        type: Date,
+        default: function (){
+            var timeTo = new Date();
+            if(this.durationType == 'minutes'){
+                timeTo = moment(new Date(this.timeFrom)).add(this.duration, 'm')._d;
+            }
+            else if (this.durationType == 'hours'){
+                timeTo = moment(new Date(this.timeFrom)).add(this.duration, 'h')._d;
+            }
+            return timeTo;
+        }
+    },
 });
 
 
@@ -65,25 +101,31 @@ tw_Appointment.plugin(mongooseDelete, {
 });
 
 tw_Appointment.statics.checkCanBook = async function(data) {
-    var currentDate = moment();
-    if(moment(data.timeFrom).isBefore(currentDate) || moment(data.timeTo).isBefore(currentDate)){
+    var currentDate = new Date();
+    var timeFrom = new Date(moment(data.date).format('YYYY/MM/DD') + ' ' + data.time);
+    var timeTo = new Date();
+    if(data.durationType == 'minutes'){
+        timeTo = moment(new Date(timeFrom)).add(data.duration, 'm')._d;
+    }
+    else if (data.durationType == 'hours'){
+        timeTo = moment(new Date(timeFrom)).add(data.duration, 'h')._d;
+    }
+
+    if(moment(timeFrom).isBefore(currentDate) || moment(timeTo).isBefore(currentDate)){
         /**Thời gian đặt hẹn không hợp lệ */
         return -1;
     }
 
-    if(moment(data.timeTo).isSameOrBefore(data.timeFrom)){
-        /**Thời gian kết thúc phải sau thời gian bắt đầu */
+    if(moment(timeTo).isSameOrBefore(timeFrom)){
+        /**Khoảng thời gian không hợp lệ */
         return -2;
     }
 
-    var dateAppointment = moment(data.timeFrom).format('DD/MM/YYYY');
-    var dateFromDB = new Date(dateAppointment + ' 00:00:00');
-    var dateToDB = new Date(dateAppointment + ' 23:59:59');
     var listAppointment = await this.find({ 
         $and: [
             { dentistId: { $eq: data.dentistId } },
-            { timeFrom: { $gte: dateFromDB } },
-            { timeFrom: { $lte: dateToDB } },
+            { status: { $ne: 'Cancelled' } },
+            { date: { $eq: data.date } },
         ]
     });
 
@@ -91,10 +133,10 @@ tw_Appointment.statics.checkCanBook = async function(data) {
         var dem = 0;
         for(var i = 0; i < listAppointment.length; i++){
             if(
-                moment(data.timeFrom).isBetween(listAppointment[i].timeFrom, listAppointment[i].timeTo, undefined, '[)') ||
-                moment(data.timeTo).isBetween(listAppointment[i].timeFrom, listAppointment[i].timeTo, undefined, '(]') ||
-                moment(listAppointment[i].timeFrom).isBetween(data.timeFrom, data.timeTo, undefined, '[)') ||
-                moment(listAppointment[i].timeTo).isBetween(data.timeFrom, data.timeTo, undefined, '(]')
+                moment(timeFrom).isBetween(listAppointment[i].timeFrom, listAppointment[i].timeTo, undefined, '[)') ||
+                moment(timeTo).isBetween(listAppointment[i].timeFrom, listAppointment[i].timeTo, undefined, '(]') ||
+                moment(listAppointment[i].timeFrom).isBetween(timeFrom, timeTo, undefined, '[)') ||
+                moment(listAppointment[i].timeTo).isBetween(timeFrom, timeTo, undefined, '(]')
             ){
                 break;
             }
@@ -110,5 +152,26 @@ tw_Appointment.statics.checkCanBook = async function(data) {
 
     return 1;
 };
+
+tw_Appointment.statics.cronCancelBooking = async function(id, cancelReason) {
+    const exist = await this.findById(id);
+    if(exist == null) return;
+
+    if(exist.status == "Chưa đến") {
+        return await this.updateOne(
+            { _id: exist._id }, 
+            {
+                $set: { 
+                    isActive: false,
+                    cancelReason: cancelReason,
+                    cancelledAt: Date.now(),
+                }
+            }
+        );
+    }
+    else {
+        return;
+    }
+}
 
 module.exports = mongoose.model('tw_Appointment', tw_Appointment);

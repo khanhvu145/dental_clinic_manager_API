@@ -1,8 +1,9 @@
 const Appointment = require('../models/tw_Appointment');
 const moment = require('moment');
+const CronJob = require('cron').CronJob;
 
 const AppointmentController = {
-    create: async(req, res) => {
+    booking: async(req, res) => {
         try{
             var formData = req.body;
             /** Kiểm tra điều kiện đầu vào */
@@ -16,7 +17,7 @@ const AppointmentController = {
             if(formData.serviceGroupId == null || formData.serviceGroupId == '') {
                 return res.status(200).json({ success: false, error: "Hãy chọn dịch vụ" });
             }
-            if((formData.timeFrom == null || formData.timeFrom == '') || (formData.timeTo == null || formData.timeTo == '')) {
+            if((formData.date == null || formData.date == '') || (formData.time == null || formData.time == '') || (formData.duration == null || formData.duration == '')) {
                 return res.status(200).json({ success: false, error: "Hãy chọn thời gian hẹn" });
             }
             //Kiểm tra thời gian book
@@ -26,7 +27,7 @@ const AppointmentController = {
                     return res.status(200).json({ success: false, error: "Thời gian đặt hẹn không hợp lệ" });
                 }
                 else if(checkCanBook == -2){
-                    return res.status(200).json({ success: false, error: "Thời gian kết thúc phải sau thời gian bắt đầu" });
+                    return res.status(200).json({ success: false, error: "Khoảng thời gian không hợp lệ" });
                 }
                 else if(checkCanBook == -3){
                     return res.status(200).json({ success: false, error: "Thời gian đặt hẹn bị trùng" });
@@ -37,22 +38,42 @@ const AppointmentController = {
             }
 
             /** Xử lý */
+            var expireTime = moment(formData.timeTo).add(1, 'm')._d;
             const newAppointment = await new Appointment({
                 dentistId: formData.dentistId ? formData.dentistId : '', 
                 customerId: formData.customerId ? formData.customerId : '', 
                 serviceGroupId: formData.serviceGroupId ? formData.serviceGroupId : '',
-                timeFrom: formData.timeFrom ? formData.timeFrom : null,
-                timeTo: formData.timeTo ? formData.timeTo : null,
+                date: formData.date ? formData.date : null,
+                time: formData.time ? formData.time : '',
+                duration: formData.duration ? parseFloat(formData.duration) : parseFloat(0),
+                durationType: formData.durationType ? formData.durationType : 'minutes',
                 type: formData.type ? formData.type : '635dedbba3976c621f4c1d8f',
-                status: formData.status ? formData.status : '635dee69a3976c621f4c1d94', 
+                status: 'Booked',
                 note: formData.note ? formData.note : '', 
                 isActive: formData.isActive ? formData.isActive : true,
                 createdAt: Date.now(),
-                createdBy: formData.createdBy ? formData.createdBy : ''
+                createdBy: formData.createdBy ? formData.createdBy : '',
+                expireTime: expireTime ? expireTime : null
             });
             const data = await newAppointment.save();
             
+            if(data){
+                const job = new CronJob(expireTime, async function() {
+                    await Appointment.cronCancelBooking(data._id, "Lịch hẹn bị hủy tự động do hết hết hạn");
+                });
+                job.start();
+            }
+
             return res.status(200).json({ success: true, message: 'Đặt hẹn thành công', data: data });
+        }
+        catch(err){
+            return res.status(200).json({ success: false, error: err });
+        }
+    },
+    getEmptyCalendar: async(req, res) => {
+        try{
+            var data = await Appointment.find({ status: { $ne: 'Cancelled' } });
+            return res.status(200).json({ success: true, data: data });
         }
         catch(err){
             return res.status(200).json({ success: false, error: err });
