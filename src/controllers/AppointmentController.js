@@ -57,12 +57,12 @@ const AppointmentController = {
             });
             const data = await newAppointment.save();
             
-            if(data){
-                const job = new CronJob(expireTime, async function() {
-                    await Appointment.cronCancelBooking(data._id, "Lịch hẹn bị hủy tự động do hết hết hạn");
-                });
-                job.start();
-            }
+            // if(data){
+            //     const job = new CronJob(expireTime, async function() {
+            //         await Appointment.cronCancelBooking(data._id, "Lịch hẹn bị hủy tự động do hết hết hạn");
+            //     });
+            //     job.start();
+            // }
 
             return res.status(200).json({ success: true, message: 'Đặt hẹn thành công', data: data });
         }
