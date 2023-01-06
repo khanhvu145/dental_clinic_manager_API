@@ -2,8 +2,12 @@ const mongoose = require('mongoose');
 const mongooseDelete = require('mongoose-delete');
 const Schema = mongoose.Schema;
 const moment = require('moment');
+const Customer = require('../models/tw_Customer');
 
 const tw_Appointment = new Schema({
+    code: {
+        type: String,
+    },
     dentistId: { 
         type: Schema.Types.ObjectId, 
         required: true,
@@ -12,7 +16,7 @@ const tw_Appointment = new Schema({
     customerId: { 
         type: Schema.Types.ObjectId, 
         required: true,
-        ref: "tw_Customer"
+        ref: "tw_customers"
     },
     serviceGroupId: { 
         type: Schema.Types.ObjectId, 
@@ -172,6 +176,6 @@ tw_Appointment.statics.cronCancelBooking = async function(id, cancelReason) {
     else {
         return;
     }
-}
+};
 
 module.exports = mongoose.model('tw_Appointment', tw_Appointment);
