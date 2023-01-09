@@ -4,6 +4,7 @@ const Schema = mongoose.Schema;
 const moment = require('moment');
 const Customer = require('../models/tw_Customer');
 
+/** */
 const tw_Appointment = new Schema({
     code: {
         type: String,
@@ -98,7 +99,6 @@ const tw_Appointment = new Schema({
     },
 });
 
-
 tw_Appointment.plugin(mongooseDelete, { 
     overrideMethods: 'all',
     deletedAt : true, 
@@ -178,4 +178,48 @@ tw_Appointment.statics.cronCancelBooking = async function(id, cancelReason) {
     }
 };
 
-module.exports = mongoose.model('tw_Appointment', tw_Appointment);
+/**Appointment log */
+const tw_Appointment_Log = new Schema({
+    appointmentId: { 
+        type: Schema.Types.ObjectId, 
+        required: true,
+        ref: "tw_Appointment"
+    },
+    type: {
+        type: String,
+    },
+    note: {
+        type: Array,
+    },
+    createdAt: {
+        type: Date,
+    },
+    createdBy: {
+        type: String,
+    }
+});
+
+tw_Appointment_Log.statics.CreateLog = async function (appointmentId, type, note, currentUser){
+    var log = {};
+    log.appointmentId = appointmentId;
+    log.type = type;
+    log.note = note;
+    log.createdBy = currentUser ? currentUser : 'System';
+    log.createdAt = Date.now();
+    await this.create(log, function(err, result){
+        if(err) {
+            return false;
+        }
+        else{
+            return true;
+        }
+    });
+};
+
+const AppointmentModel = mongoose.model('tw_Appointment', tw_Appointment);
+const AppointmentLogModel = mongoose.model('tw_Appointment_Log', tw_Appointment_Log);
+
+module.exports = {
+    AppointmentModel,
+    AppointmentLogModel
+  }

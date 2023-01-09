@@ -1,4 +1,12 @@
-const Appointment = require('../models/tw_Appointment');
+const models = require('../models/tw_Appointment');
+const Appointment = models.AppointmentModel;
+const AppointmentLog = models.AppointmentLogModel;
+const ServiceGroup = require('../models/tw_ServiceGroup');
+const GeneralConfig = require('../models/tw_GeneralConfig');
+const User = require('../models/tw_User');
+const Customer = require('../models/tw_Customer');
+const IsNullOrEmpty = require('../helpers/IsNullOrEmpty');
+const isObjectId = require('../helpers/isObjectId');
 const moment = require('moment');
 const CronJob = require('cron').CronJob;
 const mongoose = require('mongoose');
@@ -18,7 +26,7 @@ const AppointmentController = {
             if(formData.serviceGroupId == null || formData.serviceGroupId == '') {
                 return res.status(200).json({ success: false, error: "Hãy chọn dịch vụ" });
             }
-            if((formData.date == null || formData.date == '') || (formData.time == null || formData.time == '') || (formData.duration == null || formData.duration == '')) {
+            if((formData.date == null || formData.date == '') || (formData.time == null || formData.time == '') || (formData.duration == null || formData.duration == '' || formData.duration == 0)) {
                 return res.status(200).json({ success: false, error: "Hãy chọn thời gian hẹn" });
             }
             //Kiểm tra thời gian book
@@ -65,8 +73,90 @@ const AppointmentController = {
                     }
                 }
             );
-            
             var data = await Appointment.findById(newAppointment._id);
+            /**Log */
+            var log = [];
+            var isUpdate = false;
+            if(isObjectId(data.dentistId)){
+                const UserData = await User.findById(data.dentistId);
+                isUpdate = true;
+                var item = {
+                    column: 'Nha sĩ phụ trách',
+                    oldvalue: '',
+                    newvalue: UserData.name || ''
+                };
+                log.push(item);
+            }
+            if(isObjectId(data.customerId)){
+                const CustomerData = await Customer.findById(data.customerId);
+                isUpdate = true;
+                var item = {
+                    column: 'Khách hàng',
+                    oldvalue: '',
+                    newvalue: CustomerData.name || ''
+                };
+                log.push(item);
+            }
+            if(isObjectId(data.serviceGroupId)) {
+                const ServiceGroupData = await ServiceGroup.findById(data.serviceGroupId);
+                isUpdate = true;
+                var item = {
+                    column: 'Loại dịch vụ',
+                    oldvalue: '',
+                    newvalue: ServiceGroupData.name
+                };
+                log.push(item);
+            }
+            if(data.date != null) {
+                isUpdate = true;
+                var item = {
+                    column: 'Ngày hẹn',
+                    oldvalue: '',
+                    newvalue: moment(data.date).format('DD/MM/YYYY')
+                };
+                log.push(item);
+            }
+            if(!IsNullOrEmpty(data.time)) {
+                isUpdate = true;
+                var item = {
+                    column: 'Giờ hẹn',
+                    oldvalue: '',
+                    newvalue: data.time
+                };
+                log.push(item);
+            }
+            if(data.duration > 0) {
+                isUpdate = true;
+                var item = {
+                    column: 'Khoảng thời gian',
+                    oldvalue: '',
+                    newvalue: `${data.duration.toString()} ${(data.durationType == 'minutes' ? 'phút' : 'giờ')}`
+                };
+                log.push(item);
+            }
+            if(isObjectId(data.type)) {
+                const GeneralConfigData = await GeneralConfig.findById(data.type);
+                isUpdate = true;
+                var item = {
+                    column: 'Loại lịch hẹn',
+                    oldvalue: '',
+                    newvalue: GeneralConfigData.value || ''
+                };
+                log.push(item);
+            }
+            if(!IsNullOrEmpty(data.note)) {
+                isUpdate = true;
+                var item = {
+                    column: 'Ghi chú',
+                    oldvalue: '',
+                    newvalue: data.note
+                };
+                log.push(item);
+            }
+            if (isUpdate)
+            {
+                await AppointmentLog.CreateLog(data._id, 'create', log, formData.createdBy);
+            }
             
             // if(data){
             //     const job = new CronJob(expireTime, async function() {
@@ -205,7 +295,7 @@ const AppointmentController = {
                 { $count: "count" }
             ]);
 
-            return res.status(200).json({ success: true, data: data, total: total.count > 0 ? total[0].count : 0 });
+            return res.status(200).json({ success: true, data: data, total: total.length > 0 ? total[0].count : 0 });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
@@ -231,7 +321,7 @@ const AppointmentController = {
                 {
                     $set: { 
                         serviceGroupId: formData.serviceGroupId ? formData.serviceGroupId : '',
-                        type: formData.type ? formData.type : '635dedbba3976c621f4c1d8f',
+                        type: formData.type ? formData.type : exist.type,
                         note: formData.note ? formData.note : '', 
                         updatedAt: Date.now(),
                         updatedBy: formData.updatedBy ? formData.updatedBy : ''
@@ -239,6 +329,49 @@ const AppointmentController = {
                 }
             );
             var data = await Appointment.findById(formData._id);
+
+            /**Log */
+            var log = [];
+            var isUpdate = false;
+            if(!exist.serviceGroupId.equals(data.serviceGroupId)){
+                const ServiceGroupData = await ServiceGroup.find({ isActive: true });
+                isUpdate = true;
+                var item = {
+                    column: 'Dịch vụ',
+                    oldvalue: ServiceGroupData.find(x => x._id.equals(exist.serviceGroupId)) ? ServiceGroupData.find(x => x._id.equals(exist.serviceGroupId)).name : '',
+                    newvalue: ServiceGroupData.find(x => x._id.equals(data.serviceGroupId)) ? ServiceGroupData.find(x => x._id.equals(data.serviceGroupId)).name : ''
+                };
+                log.push(item);
+            }
+            if(!exist.type.equals(data.type)){
+                const GeneralConfigData = await GeneralConfig.find({
+                    $and: [
+                        { type: { $regex: 'appointment_type', $options:"$i" } },
+                        { isActive: true }
+                    ]
+                });
+                isUpdate = true;
+                var item = {
+                    column: 'Loại lịch hẹn',
+                    oldvalue: GeneralConfigData.find(x => x._id.equals(exist.type)) ? GeneralConfigData.find(x => x._id.equals(exist.type)).value : '',
+                    newvalue: GeneralConfigData.find(x => x._id.equals(data.type)) ? GeneralConfigData.find(x => x._id.equals(data.type)).value : ''
+                };
+                log.push(item);
+            }
+            if(exist.note != data.note) {
+                isUpdate = true;
+                var item = {
+                    column: 'Ghi chú',
+                    oldvalue: exist.note,
+                    newvalue: data.note
+                };
+                log.push(item);
+            }
+            if (isUpdate)
+            {
+                await AppointmentLog.CreateLog(data._id, 'update', log, formData.updatedBy);
+            }
+
             return res.status(200).json({ success: true, message: 'Cập nhật thành công', data: data });
         }
         catch(err){
@@ -278,10 +411,29 @@ const AppointmentController = {
                     }
                 }
             );
+            
+            /**Log */
+            var log = [];
+            var item = {
+                column: 'Lý do',
+                oldvalue: '',
+                newvalue: formData.cancelReason || ''
+            };
+            log.push(item);
+            await AppointmentLog.CreateLog(formData.id, 'cancel', log, formData.updatedBy);
 
             /**Thông báo */
 
             return res.status(200).json({ success: true, message: 'Hủy lịch hẹn thành công' });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getLogs: async(req, res) => {
+        try{
+            const data = await AppointmentLog.find({ appointmentId: req.params.id }).sort({ createdAt: -1 });
+            return res.status(200).json({ success: true, data: data });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });

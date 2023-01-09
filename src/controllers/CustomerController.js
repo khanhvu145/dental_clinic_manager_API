@@ -89,7 +89,7 @@ const CustomerController = {
             }
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     getByQuery: async(req, res) => {
@@ -119,7 +119,7 @@ const CustomerController = {
             return res.status(200).json({ success: true, data: data, total: total });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     getById: async(req, res) => {
@@ -128,7 +128,7 @@ const CustomerController = {
             return res.status(200).json({ success: true, data: data });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     update: async(req, res) => {
@@ -161,6 +161,11 @@ const CustomerController = {
                 if (!filter.test(email)) { 
                     return res.status(200).json({ success: false, error: "Email không đúng định dạng" });
                 }
+            }
+            /**Kiểm tra tồn tại */
+            const exist = await Customer.findById(formData._id);
+            if(exist == null) {
+                return res.status(200).json({ success: false, error: "Khách hàng không tồn tại" });
             }
             //Xử lý
             //Xử lý upload file
@@ -202,7 +207,7 @@ const CustomerController = {
             return res.status(200).json({ success: true, message: 'Cập nhật thành công', data: data });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     getAll: async(req, res) => {
@@ -211,7 +216,7 @@ const CustomerController = {
             return res.status(200).json({ success: true, data: data });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     }
 }

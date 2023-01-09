@@ -37,7 +37,7 @@ const ServiceController = {
             }
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     getByQuery: async(req, res) => {
@@ -67,7 +67,7 @@ const ServiceController = {
             return res.status(200).json({ success: true, data: data, total: total });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     getById: async(req, res) => {
@@ -76,7 +76,7 @@ const ServiceController = {
             return res.status(200).json({ success: true, data: data });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     update: async(req, res) => {
@@ -97,6 +97,11 @@ const ServiceController = {
             }
             if(formData.groupId == null || formData.groupId == '') {
                 return res.status(200).json({ success: false, error: "Hãy chọn nhóm dịch vụ" });
+            }
+            /**Kiểm tra tồn tại */
+            const exist = await Service.findById(formData._id);
+            if(exist == null) {
+                return res.status(200).json({ success: false, error: "Dịch vụ không tồn tại" });
             }
             //Xử lý
             await Service.updateOne(
@@ -119,7 +124,7 @@ const ServiceController = {
             return res.status(200).json({ success: true, message: 'Cập nhật thành công', data: data });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     groupCreate: async(req, res) => {
@@ -151,7 +156,7 @@ const ServiceController = {
             }
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     groupGetByQuery: async(req, res) => {
@@ -179,13 +184,13 @@ const ServiceController = {
             return res.status(200).json({ success: true, data: data, total: total });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     groupGetById: async(req, res) => {
         try{
             const data = await ServiceGroup.findById(req.params.id);
-            return res.status(200).json({ success: true, data: data });
+            return res.status(400).json({ success: true, data: data });
         }
         catch(err){
             return res.status(200).json({ success: false, error: err });
@@ -207,6 +212,11 @@ const ServiceController = {
             if(formData.name == null || formData.name == '') {
                 return res.status(200).json({ success: false, error: "Hãy nhập tên dịch vụ" });
             }
+            /**Kiểm tra tồn tại */
+            const exist = await ServiceGroup.findById(formData._id);
+            if(exist == null) {
+                return res.status(200).json({ success: false, error: "Nhóm dịch vụ không tồn tại" });
+            }
             //Xử lý
             await ServiceGroup.updateOne(
                 { _id: formData._id }, 
@@ -225,7 +235,7 @@ const ServiceController = {
             return res.status(200).json({ success: true, message: 'Cập nhật thành công', data: data });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
 }

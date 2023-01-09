@@ -108,7 +108,7 @@ const UserController = {
             }
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     getById: async(req, res) => {
@@ -117,7 +117,7 @@ const UserController = {
             return res.status(200).json({ success: true, data: data });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     update: async(req, res) => {
@@ -163,6 +163,11 @@ const UserController = {
             if(formData.accessId == null || formData.accessId == '') {
                 return res.status(200).json({ success: false, error: "Hãy chọn nhóm người dùng" });
             }
+            /**Kiểm tra tồn tại */
+            const exist = await User.findById(formData._id);
+            if(exist == null) {
+                return res.status(200).json({ success: false, error: "Người dùng không tồn tại" });
+            }
             //Xử lý
             //Xử lý upload file
             if(req.file){
@@ -203,7 +208,7 @@ const UserController = {
             return res.status(200).json({ success: true, message: 'Cập nhật thành công', data: data });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     getByQuery: async(req, res) => {
@@ -233,7 +238,7 @@ const UserController = {
             return res.status(200).json({ success: true, data: data, total: total });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     getDentist: async(req, res) => {
@@ -242,7 +247,7 @@ const UserController = {
             return res.status(200).json({ success: true, data: data });
         }
         catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     }
 }
