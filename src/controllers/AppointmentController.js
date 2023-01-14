@@ -48,6 +48,8 @@ const AppointmentController = {
 
             /** Xử lý */
             // var expireTime = moment(formData.timeTo).add(1, 'm')._d;
+            var timeFrom = await Appointment.setTimeFrom(formData.date, formData.time);
+            var timeTo = await Appointment.setTimeTo(timeFrom, parseFloat(formData.duration), formData.durationType);
             const newAppointment = await new Appointment({
                 dentistId: formData.dentistId ? formData.dentistId : '', 
                 customerId: formData.customerId ? formData.customerId : '', 
@@ -59,6 +61,8 @@ const AppointmentController = {
                 type: formData.type ? formData.type : '635dedbba3976c621f4c1d8f',
                 status: 'Booked',
                 note: formData.note ? formData.note : '', 
+                timeFrom: timeFrom ? timeFrom : null, 
+                timeTo: timeTo ? timeTo : null, 
                 isActive: formData.isActive ? formData.isActive : true,
                 createdAt: Date.now(),
                 createdBy: formData.createdBy ? formData.createdBy : '',
@@ -441,7 +445,204 @@ const AppointmentController = {
     },
     changeStatus: async(req, res) => {
         try{
+            var formData = req.body;
+            /**Kiểm tra tồn tại */
+            const exist = await Appointment.findById(formData.id);
+            if(exist == null) {
+                return res.status(200).json({ success: false, error: "Lịch hẹn không tồn tại" });
+            }
 
+            /**Xử lý */
+            if(formData.action == 'Checkin'){
+                /**Kiểm tra trạng thái lịch hẹn */
+                if(exist.status != 'Booked'){
+                    return res.status(200).json({ success: false, error: "Trạng thái lịch hẹn hiện tại không thể xác nhận" });
+                }
+
+                await Appointment.updateOne(
+                    { _id: formData.id }, 
+                    {
+                        $set: { 
+                            status: 'Checkin', 
+                            updatedAt: Date.now(),
+                            updatedBy: formData.currentUser ? formData.currentUser : ''
+                        }
+                    }
+                );
+                var data = await Appointment.findById(formData.id);
+                
+                /**Logs */
+                await AppointmentLog.CreateLog(data._id, 'Xác nhận đến khám', [], formData.currentUser);
+                /**Notify */
+
+                return res.status(200).json({ success: true, message: 'Xác nhận thành công' });
+            }
+            else if(formData.action == 'Booked'){
+                /**Kiểm tra trạng thái lịch hẹn */
+                if(exist.status != 'Checkin'){
+                    return res.status(200).json({ success: false, error: "Trạng thái lịch hẹn hiện tại không thể hủy xác nhận" });
+                }
+
+                await Appointment.updateOne(
+                    { _id: formData.id }, 
+                    {
+                        $set: { 
+                            status: 'Booked', 
+                            updatedAt: Date.now(),
+                            updatedBy: formData.currentUser ? formData.currentUser : ''
+                        }
+                    }
+                );
+                var data = await Appointment.findById(formData.id);
+                
+                /**Logs */
+                await AppointmentLog.CreateLog(data._id, 'Hủy xác nhận đến khám', [], formData.currentUser);
+                /**Notify */
+
+                return res.status(200).json({ success: true, message: 'Hủy xác nhận thành công' });
+            }
+            else{
+                return res.status(200).json({ success: true, message: 'Cập nhật thành công' });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getById: async(req, res) => {
+        try{
+            const data = await Appointment.findById(req.params.id);
+            return res.status(200).json({ success: true, data: data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getCalendarByDentist: async(req, res) => {
+        try{
+            var data = await Appointment.find({ dentistId: req.params.id, status: { $ne: 'Cancelled' } });
+            return res.status(200).json({ success: true, data: data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    transferBooking: async(req, res) => {
+        try{
+            var formData = req.body;
+            /** Kiểm tra điều kiện đầu vào */
+            if(formData.dentistId == null || formData.dentistId == '') {
+                return res.status(200).json({ success: false, error: "Hãy chọn nha sĩ phụ trách" });
+            }
+            if((formData.date == null || formData.date == '') || (formData.time == null || formData.time == '') || (formData.duration == null || formData.duration == '' || formData.duration == 0)) {
+                return res.status(200).json({ success: false, error: "Hãy chọn thời gian hẹn" });
+            }
+            
+            /**Kiểm tra tồn tại */
+            const exist = await Appointment.findById(formData.id);
+            if(exist == null) {
+                return res.status(200).json({ success: false, error: "Lịch hẹn không tồn tại" });
+            }
+
+            /**Kiểm tra thời gian book */
+            var checkCanBook = await Appointment.checkCanBook(formData);
+            if(checkCanBook < 1){
+                if(checkCanBook == -1){
+                    return res.status(200).json({ success: false, error: "Thời gian đặt hẹn không hợp lệ" });
+                }
+                else if(checkCanBook == -2){
+                    return res.status(200).json({ success: false, error: "Khoảng thời gian không hợp lệ" });
+                }
+                else if(checkCanBook == -3){
+                    return res.status(200).json({ success: false, error: "Thời gian đặt hẹn bị trùng" });
+                }
+                else{
+                    return res.status(200).json({ success: false, error: "Có lỗi xảy ra trong quá trình đặt lịch hẹn" });
+                }
+            }
+
+            /**Xử lý */
+            var timeFrom = await Appointment.setTimeFrom(formData.date, formData.time);
+            var timeTo = await Appointment.setTimeTo(timeFrom, parseFloat(formData.duration), formData.durationType);
+            var data = await Appointment.findOneAndUpdate(
+                { _id: formData.id }, 
+                {
+                    $set: { 
+                        dentistId: formData.dentistId ? formData.dentistId : '', 
+                        date: formData.date ? formData.date : null,
+                        time: formData.time ? formData.time : '',
+                        duration: formData.duration ? parseFloat(formData.duration) : parseFloat(0),
+                        durationType: formData.durationType ? formData.durationType : 'minutes',
+                        status: 'Booked',
+                        note: formData.note ? formData.note : exist.note, 
+                        timeFrom: timeFrom ? timeFrom : null, 
+                        timeTo: timeTo ? timeTo : null, 
+                        updatedAt: Date.now(),
+                        updatedBy: formData.updatedBy ? formData.updatedBy : ''
+                    }
+                },
+                {
+                    new: true,
+                }
+            );
+            // var data = await Appointment.findById(formData.id);
+
+            /**Log */
+            var log = [];
+            var isUpdate = false;
+            if(isObjectId(data.dentistId) && isObjectId(exist.dentistId)){
+                const newUser = await User.findById(data.dentistId);
+                const existUser = await User.findById(exist.dentistId);
+                isUpdate = true;
+                var item = {
+                    column: 'Nha sĩ phụ trách',
+                    oldvalue: existUser.name || '',
+                    newvalue: newUser.name || ''
+                };
+                log.push(item);
+            }
+            if(data.date != null && exist.date != null) {
+                isUpdate = true;
+                var item = {
+                    column: 'Ngày hẹn',
+                    oldvalue: moment(exist.date).format('DD/MM/YYYY'),
+                    newvalue: moment(data.date).format('DD/MM/YYYY')
+                };
+                log.push(item);
+            }
+            if(!IsNullOrEmpty(data.time) && !IsNullOrEmpty(exist.time)) {
+                isUpdate = true;
+                var item = {
+                    column: 'Giờ hẹn',
+                    oldvalue: exist.time,
+                    newvalue: data.time
+                };
+                log.push(item);
+            }
+            if(data.duration > 0) {
+                isUpdate = true;
+                var item = {
+                    column: 'Khoảng thời gian',
+                    oldvalue: `${exist.duration.toString()} ${(exist.durationType == 'minutes' ? 'phút' : 'giờ')}`,
+                    newvalue: `${data.duration.toString()} ${(data.durationType == 'minutes' ? 'phút' : 'giờ')}`
+                };
+                log.push(item);
+            }
+            if(exist.note != data.note) {
+                isUpdate = true;
+                var item = {
+                    column: 'Ghi chú',
+                    oldvalue: exist.note,
+                    newvalue: data.note
+                };
+                log.push(item);
+            }
+            if (isUpdate)
+            {
+                await AppointmentLog.CreateLog(data._id, 'Chuyển lịch hẹn', log, formData.updatedBy);
+            }
+
+            return res.status(200).json({ success: true, message: 'Chuyển lịch hẹn thành công', data: data });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });

@@ -9,5 +9,8 @@ router.put('/updateBooking', appointmentController.updateBooking);
 router.put('/cancelBooking', appointmentController.cancelBooking);
 router.get('/getLogs/:id/', appointmentController.getLogs);
 router.put('/changeStatus', appointmentController.changeStatus);
+router.get('/getById/:id/', appointmentController.getById);
+router.get('/getCalendarByDentist/:id/', appointmentController.getCalendarByDentist);
+router.put('/transferBooking', appointmentController.transferBooking);
 
 module.exports = router;

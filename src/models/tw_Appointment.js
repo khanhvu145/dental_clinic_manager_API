@@ -79,23 +79,9 @@ const tw_Appointment = new Schema({
     },
     timeFrom: {
         type: Date,
-        default: function (){
-            var timeFrom = new Date(moment(this.date).format('YYYY/MM/DD') + ' ' + this.time);
-            return timeFrom;
-        }
     },
     timeTo: {
         type: Date,
-        default: function (){
-            var timeTo = new Date();
-            if(this.durationType == 'minutes'){
-                timeTo = moment(new Date(this.timeFrom)).add(this.duration, 'm')._d;
-            }
-            else if (this.durationType == 'hours'){
-                timeTo = moment(new Date(this.timeFrom)).add(this.duration, 'h')._d;
-            }
-            return timeTo;
-        }
     },
 });
 
@@ -178,6 +164,21 @@ tw_Appointment.statics.cronCancelBooking = async function(id, cancelReason) {
     }
 };
 
+tw_Appointment.statics.setTimeFrom = async function setTimeFrom(date, time) {
+    var timeFrom = new Date(moment(date).format('YYYY/MM/DD') + ' ' + time);
+    return timeFrom;
+};
+
+tw_Appointment.statics.setTimeTo = async function setTimeTo(timeFrom, duration, durationType) {
+    var timeTo = new Date();
+    if(durationType == 'minutes'){
+        timeTo = moment(new Date(timeFrom)).add(duration, 'm')._d;
+    }
+    else if (durationType == 'hours'){
+        timeTo = moment(new Date(timeFrom)).add(duration, 'h')._d;
+    }
+    return timeTo;
+};
 /**Appointment log */
 const tw_Appointment_Log = new Schema({
     appointmentId: { 
