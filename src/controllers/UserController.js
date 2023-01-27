@@ -194,7 +194,7 @@ const UserController = {
                         "address.wardId": formData.address.wardId ? parseInt(formData.address.wardId, 10) : null,
                         "address.districtId": formData.address.districtId ? parseInt(formData.address.districtId, 10) : null,
                         "address.provinceId": formData.address.provinceId ? parseInt(formData.address.provinceId, 10) : null,
-                        iimg: formData.img ? formData.img : '',
+                        img: formData.img ? formData.img : '',
                         imageFile: null,
                         accessId: formData.accessId,
                         position: formData.position ? formData.position : '',
