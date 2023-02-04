@@ -41,6 +41,9 @@ const AppointmentController = {
                 else if(checkCanBook == -3){
                     return res.status(200).json({ success: false, error: "Thời gian đặt hẹn bị trùng" });
                 }
+                else if(checkCanBook == -4){
+                    return res.status(200).json({ success: false, error: "Thời gian đặt hẹn nằm ngoài thời gian làm việc" });
+                }
                 else{
                     return res.status(200).json({ success: false, error: "Có lỗi xảy ra trong quá trình đặt lịch hẹn" });
                 }
@@ -169,7 +172,7 @@ const AppointmentController = {
             //     job.start();
             // }
 
-            return res.status(200).json({ success: true, message: 'Đặt hẹn thành công', data: data });
+            return res.status(200).json({ success: true, message: 'Đặt hẹn thành công', data: data, checkCanBook: checkCanBook });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
@@ -555,6 +558,9 @@ const AppointmentController = {
                 }
                 else if(checkCanBook == -3){
                     return res.status(200).json({ success: false, error: "Thời gian đặt hẹn bị trùng" });
+                }
+                else if(checkCanBook == -4){
+                    return res.status(200).json({ success: false, error: "Thời gian đặt hẹn nằm ngoài thời gian làm việc" });
                 }
                 else{
                     return res.status(200).json({ success: false, error: "Có lỗi xảy ra trong quá trình đặt lịch hẹn" });

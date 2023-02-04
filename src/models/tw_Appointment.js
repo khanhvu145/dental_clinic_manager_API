@@ -3,6 +3,7 @@ const mongooseDelete = require('mongoose-delete');
 const Schema = mongoose.Schema;
 const moment = require('moment');
 const Customer = require('../models/tw_Customer');
+const AppointmentConfig = require('../models/tw_AppointmentConfig');
 
 /** */
 const tw_Appointment = new Schema({
@@ -137,6 +138,39 @@ tw_Appointment.statics.checkCanBook = async function(data) {
         if(dem < listAppointment.length){
             /**Thời gian đặt hẹn bị trùng */
             return -3;
+        }
+    }
+
+    //Kiểm tra thời gian so với thời gian cấu hình lịch hẹn
+    var config = await AppointmentConfig.find({});
+    if(config != null && config.length > 0) {
+        var configInfo = config[0];
+        if(configInfo.workingTime.apply){
+            var dayOff = configInfo.workingTime.dayOfWeek.filter(item => item.value == false);
+            dayOff = dayOff.map(item => item.key);
+            var timeAMFrom = configInfo.workingTime.timeAM.timeFrom + ':00';
+            var timeAMTo = configInfo.workingTime.timeAM.timeTo + ':00';
+            var timePMFrom = configInfo.workingTime.timePM.timeFrom + ':00';
+            var timePMTo = configInfo.workingTime.timePM.timeTo + ':00';
+            var check = false;
+            if(
+                (
+                    moment(timeFrom).isBetween((moment(timeFrom).format('YYYY-MM-DD') + ' ' + timeAMFrom), (moment(timeFrom).format('YYYY-MM-DD') + ' ' + timeAMTo), undefined, '[)') &&
+                    moment(timeTo).isBetween((moment(timeTo).format('YYYY-MM-DD') + ' ' + timeAMFrom), (moment(timeTo).format('YYYY-MM-DD') + ' ' + timeAMTo), undefined, '(]')
+                )
+                || 
+                (
+                    moment(timeFrom).isBetween((moment(timeFrom).format('YYYY-MM-DD') + ' ' + timePMFrom), (moment(timeFrom).format('YYYY-MM-DD') + ' ' + timePMTo), undefined, '[)') &&
+                    moment(timeTo).isBetween((moment(timeTo).format('YYYY-MM-DD') + ' ' + timePMFrom), (moment(timeTo).format('YYYY-MM-DD') + ' ' + timePMTo), undefined, '(]')
+                )
+            ){
+                check = true;
+            }
+    
+            if(dayOff.includes(moment(timeFrom).day()) == true || dayOff.includes(moment(timeTo).day()) == true || check == false) {
+                //Thời gian đặt hẹn nằm ngoài thời gian làm việc
+                return -4;
+            }
         }
     }
 
