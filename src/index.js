@@ -14,6 +14,7 @@ const generalconfigRoute = require('./routes/generalconfig');
 const serviceRoute = require('./routes/service');
 const appointmentRoute = require('./routes/appointment');
 const appointmentConfigRoute = require('./routes/appointmentConfig');
+const smtpConfigRoute = require('./routes/smtpconfig');
 
 //CONNECT DATABASE
 dotenv.config();
@@ -37,6 +38,7 @@ app.use('/api/generalconfig', generalconfigRoute);
 app.use('/api/service', serviceRoute);
 app.use('/api/appointment', appointmentRoute);
 app.use('/api/appointmentConfig', appointmentConfigRoute);
+app.use('/api/smtpConfig', smtpConfigRoute);
 
 //LISTEN PORT
 app.listen(process.env.PORT || 8000, () => {

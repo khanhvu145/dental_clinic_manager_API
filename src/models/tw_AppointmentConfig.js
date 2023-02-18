@@ -67,27 +67,35 @@ const tw_AppointmentConfig = new Schema({
             },
         }
     },
-    autoCancel: {
+    other: {
         type: Object,
         properties: {
-            apply: { 
+            autoCancelApply: { 
                 type: Boolean,
                 required: true,
             },
-            duration: {
+            autoCancelDuration: {
                 type: Schema.Types.Number,
                 required: true,
             },
-            type: {
+            autoCancelType: {
                 type: String,
                 required: true,
             },
-            notification: { 
+            notifyIsBooked: { 
                 type: Boolean,
                 required: true,
             },
-            notificationType: {
-                type: String,
+            notifyIsCheckin: { 
+                type: Boolean,
+                required: true,
+            },
+            notifyIsCancelled: { 
+                type: Boolean,
+                required: true,
+            },
+            notifyIsTranfer: { 
+                type: Boolean,
                 required: true,
             },
         }

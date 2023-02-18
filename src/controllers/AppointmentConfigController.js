@@ -9,7 +9,7 @@ const AppointmentConfigController = {
             var formData = req.body;
             var workingTimeData = formData.workingTime;
             var autoRemindData = formData.autoRemind;
-            var autoCancelData = formData.autoCancel;
+            var otherData = formData.other;
             var dayOfWeekData = [
                 {
                     key: 'monday',
@@ -68,8 +68,8 @@ const AppointmentConfigController = {
             }
 
             //Cấu hình hủy hẹn tự động
-            if(autoCancelData.apply){
-                if(autoCancelData.duration == null || autoCancelData.duration == '' || autoCancelData.duration == 0){
+            if(otherData.autoCancelApply){
+                if(otherData.autoCancelDuration == null || otherData.autoCancelDuration == '' || otherData.autoCancelDuration == 0){
                     return res.status(200).json({ success: false, error: "Hãy nhập thời gian hủy hẹn tự động" });
                 }
             }
@@ -90,11 +90,13 @@ const AppointmentConfigController = {
                 "autoRemind.duration": autoRemindData.duration ? parseFloat(autoRemindData.duration) : parseFloat(0),
                 "autoRemind.time": autoRemindData.time ? autoRemindData.time : '',
                 "autoRemind.type": autoRemindData.type ? autoRemindData.type : 'type3',
-                "autoCancel.apply": autoCancelData.apply,
-                "autoCancel.duration": autoCancelData.duration ? parseFloat(autoCancelData.duration) : parseFloat(0),
-                "autoCancel.type": autoCancelData.type ? autoCancelData.type : 'minutes',
-                "autoCancel.notification": autoCancelData.notification,
-                "autoCancel.notificationType": autoCancelData.notificationType ? autoCancelData.notificationType : 'type3',
+                "other.autoCancelApply": otherData.autoCancelApply,
+                "other.autoCancelDuration": otherData.autoCancelDuration ? parseFloat(otherData.autoCancelDuration) : parseFloat(0),
+                "other.autoCancelType": otherData.autoCancelType ? otherData.autoCancelType : 'minutes',
+                "other.notifyIsBooked": otherData.notifyIsBooked,
+                "other.notifyIsCheckin": otherData.notifyIsCheckin,
+                "other.notifyIsCancelled": otherData.notifyIsCancelled,
+                "other.notifyIsTranfer": otherData.notifyIsTranfer,
                 createdAt: Date.now(),
                 createdBy: formData.createdBy ? formData.createdBy : ''
             });
