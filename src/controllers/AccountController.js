@@ -50,7 +50,7 @@ const AccountController = {
                 return res.status(200).json({ success: false, error: 'Tài khoản hoặc mật khẩu không đúng', data: '' });
             }
         }catch(err){
-            return res.status(200).json({ success: false, error: err });
+            return res.status(400).json({ success: false, error: err });
         }
     },
     info: async (req, res) => {
@@ -62,7 +62,54 @@ const AccountController = {
 
             return res.status(200).json({ success: true, data: data });
         }catch(err){
-            return res.status(500).json({success: false, error: err});
+            return res.status(400).json({success: false, error: err});
+        }
+    },
+    resetPassword: async(req, res) => {
+        try{
+            var formData = req.body;
+            /** Kiểm tra điều kiện đầu vào */
+            //Mật khẩu hiện tại
+            if(formData.currentPassword == null || formData.currentPassword == '') {
+                return res.status(200).json({ success: false, error: "Hãy nhập mật khẩu hiện tại" });
+            }
+            //Mật khẩu mới
+            if(formData.newPassword == null || formData.newPassword == '') {
+                return res.status(200).json({ success: false, error: "Hãy nhập mật khẩu mới" });
+            }
+            //Xác nhận mật khẩu
+            if(formData.confirmPassword == null || formData.confirmPassword == '') {
+                return res.status(200).json({ success: false, error: "Hãy xác nhận mật khẩu" });
+            }
+
+            /**Xử lý */
+            const user = await User.findById(formData.id);
+            if(user == null) {
+                return res.status(200).json({ success: false, error: 'Tài khoản không tồn tại' });
+            }
+            /**Kiểm tra mật khẩu hiện tại có chính xác */
+            if(bcrypt.compareSync(formData.currentPassword, user.password) == false) {
+                return res.status(200).json({ success: false, error: 'Mật khẩu hiện tại không chính xác' });
+            }
+
+            /**Kiểm tra mật khẩu mới và mật khẩu xác nhận có khớp */
+            if(formData.newPassword.trim() != formData.confirmPassword.trim()){
+                return res.status(200).json({ success: false, error: 'Xác nhận mật khẩu không khớp' });
+            }
+
+            await User.updateOne(
+                { _id: formData.id }, 
+                {
+                    $set: { 
+                        password: bcrypt.hashSync(formData.newPassword.trim(), salt)
+                    }
+                }
+            );
+
+            return res.status(200).json({ success: true, message: 'Cập nhật mật khẩu thành công. Hãy đăng nhập lại' });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
         }
     }
 }

@@ -71,6 +71,12 @@ const AppointmentController = {
 
             /** Xử lý */
             var data = await Appointment.booking(formData);
+
+            if(data.code <= 0){
+                return res.status(200).json({ success: false, error: data.error });
+            }
+
+            return res.status(200).json({ success: true, message: 'Đặt hẹn thành công', data: data.data, checkCanBook: checkCanBook });
             // var timeFrom = await Appointment.setTimeFrom(formData.date, formData.time);
             // var timeTo = await Appointment.setTimeTo(timeFrom, parseFloat(formData.duration), formData.durationType);
             // const newAppointment = await new Appointment({
@@ -215,8 +221,6 @@ const AppointmentController = {
             // {
             //     await AppointmentLog.CreateLog(data._id, 'create', log, formData.createdBy);
             // }
-
-            return res.status(200).json({ success: true, message: 'Đặt hẹn thành công', data: data, checkCanBook: checkCanBook });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
@@ -582,6 +586,12 @@ const AppointmentController = {
             if(formData.dentistId == null || formData.dentistId == '') {
                 return res.status(200).json({ success: false, error: "Hãy chọn nha sĩ phụ trách" });
             }
+            else{
+                var dentistInfo =  await User.findById(formData.dentistId);
+                if(dentistInfo == null){
+                    return res.status(200).json({ success: false, error: "Không có thông tin nha sĩ" });
+                }
+            }
             if((formData.date == null || formData.date == '') || (formData.time == null || formData.time == '') || (formData.duration == null || formData.duration == '' || formData.duration == 0)) {
                 return res.status(200).json({ success: false, error: "Hãy chọn thời gian hẹn" });
             }
@@ -623,6 +633,9 @@ const AppointmentController = {
 
             //Tạo booking mới
             var data = await Appointment.booking(exist);
+            if(data.code <= 0){
+                return res.status(200).json({ success: false, error: data.error });
+            }
             //Hủy booking cũ
             await Appointment.cancelBooking(exist._id, 'Lịch hẹn được chuyển sang lịch hẹn ' + data.code, formData.updatedBy);
 
@@ -668,7 +681,7 @@ const AppointmentController = {
                 await AppointmentLog.CreateLog(data._id, 'Chuyển lịch hẹn', log, formData.updatedBy);
             }
 
-            return res.status(200).json({ success: true, message: 'Chuyển lịch hẹn thành công', data: data });
+            return res.status(200).json({ success: true, message: 'Chuyển lịch hẹn thành công', data: data.data });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });

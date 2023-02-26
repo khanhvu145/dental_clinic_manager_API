@@ -70,8 +70,8 @@ const UserController = {
                 }
                 //Lưu dữ liệu
                 const newData = await new User({
-                    username: formData.username, 
-                    password: bcrypt.hashSync(formData.password, salt),
+                    username: formData.username.trim(), 
+                    password: bcrypt.hashSync(formData.password.trim(), salt),
                     name: formData.name, 
                     physicalId: formData.physicalId,
                     dateOfIssue: formData.dateOfIssue ? formData.dateOfIssue : null,
