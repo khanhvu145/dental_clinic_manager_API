@@ -10,6 +10,7 @@ const AppointmentConfigController = {
             var workingTimeData = formData.workingTime;
             var autoRemindData = formData.autoRemind;
             var otherData = formData.other;
+            var viewsData = formData.views;
             var dayOfWeekData = [
                 {
                     key: 'monday',
@@ -97,6 +98,7 @@ const AppointmentConfigController = {
                 "other.notifyIsCheckin": otherData.notifyIsCheckin,
                 "other.notifyIsCancelled": otherData.notifyIsCancelled,
                 "other.notifyIsTranfer": otherData.notifyIsTranfer,
+                views: viewsData,
                 createdAt: Date.now(),
                 createdBy: formData.createdBy ? formData.createdBy : ''
             });

@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const httpServer = require('http').createServer(app);
+const createSocketIO = require('./configs/socket')
 const mongoose = require('mongoose');
 var bodyParser = require('body-parser');
 const morgan = require('morgan');
@@ -15,6 +17,7 @@ const serviceRoute = require('./routes/service');
 const appointmentRoute = require('./routes/appointment');
 const appointmentConfigRoute = require('./routes/appointmentConfig');
 const smtpConfigRoute = require('./routes/smtpconfig');
+const workingCalendarRoute = require('./routes/workingCalendar');
 
 //CONNECT DATABASE
 dotenv.config();
@@ -23,6 +26,7 @@ mongoose.connect((process.env.MONGODB_URL), () => {
 })
 
 /////
+createSocketIO(httpServer);
 app.use(bodyParser.json({
     limit: "50mb"
 }));
@@ -39,9 +43,14 @@ app.use('/api/service', serviceRoute);
 app.use('/api/appointment', appointmentRoute);
 app.use('/api/appointmentConfig', appointmentConfigRoute);
 app.use('/api/smtpConfig', smtpConfigRoute);
+app.use('/api/workingCalendar', workingCalendarRoute);
+
+app.get("/", (req, res) => {
+    res.json({ message: "THIS IS API FOR DENTAL CLINIC MANAGER WEB" });
+});
 
 //LISTEN PORT
-app.listen(process.env.PORT || 8000, () => {
+httpServer.listen(process.env.PORT || 8000, () => {
     const port = process.env.PORT || 8000;
     console.log(`Server Started at ${port}`)
 })

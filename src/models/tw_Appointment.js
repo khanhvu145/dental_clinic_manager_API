@@ -180,6 +180,7 @@ tw_Appointment.statics.booking = async function(formData){
                     for(var i = autoRemindDuration; i >= 0; i--){
                         var timeAutoRemind = await _this.setTimeFrom(data.date, autoRemindTime);
                         var expireTime = moment(timeAutoRemind).subtract(i, 'd')._d;
+                        // var expireTime = moment(Date.now()).add(i, 'm')._d;
                         if(expireTime != null){
                             var dateCronAutoRemind = convertDateToCron(expireTime);
                             var job3 = await new CronJob(
@@ -215,6 +216,8 @@ tw_Appointment.statics.booking = async function(formData){
                                 if(configInfo.autoRemind.type == 'type2' || configInfo.autoRemind.type == 'type3'){
                                     await _this.sendMailAutoRemindBooking(data._id);
                                 }
+
+                                // await sendSMS(['84703260457'], 'SMS nhắc hẹn tự động', 2, '');
                                 
                                 // if(configInfo.autoRemind.type == 'type1' || configInfo.autoRemind.type == 'type3'){
                                 //     await sendSMS('84703260457', 'SMS nhắc hẹn tự động');
@@ -322,7 +325,7 @@ tw_Appointment.statics.booking = async function(formData){
     }
 };
 
-tw_Appointment.statics.checkCanBook = async function(data) {
+tw_Appointment.statics.checkCanBook = async function(data, isUpdate) {
     var currentDate = new Date();
     var timeFrom = new Date(moment(data.date).format('YYYY/MM/DD') + ' ' + data.time);
     var timeTo = new Date();
@@ -348,6 +351,7 @@ tw_Appointment.statics.checkCanBook = async function(data) {
             { dentistId: { $eq: data.dentistId } },
             { status: { $ne: 'Cancelled' } },
             { date: { $eq: data.date } },
+            isUpdate ? { _id: { $ne: data._id } } : {}
         ]
     });
 

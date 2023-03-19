@@ -100,6 +100,10 @@ const tw_AppointmentConfig = new Schema({
             },
         }
     },
+    views: {
+        type: Array,
+        required: true,
+    },
     createdAt: {
         type: Date,
     },
