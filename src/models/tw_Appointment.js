@@ -463,7 +463,7 @@ tw_Appointment.statics.sendMailAutoRemindBooking = async function(id) {
     }
 
     if(existBooking.status == "Booked"){
-        var template = fs.readFileSync(path.join(__dirname, '/../content/emailTemplate/autoRemindEmailTemplate.html'),{encoding:'utf-8'});  
+        var template = fs.readFileSync(path.join(__dirname, '/../content/emailTemplate/RemindEmailTemplate.html'),{encoding:'utf-8'});  
         template = template.replace('{customerName}', customerInfo != null ? customerInfo.name : '');
         template = template.replace('{code}', existBooking.code);
         template = template.replace('{date}', moment(existBooking.date).format('DD/MM/YYYY').toString());

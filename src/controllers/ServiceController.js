@@ -48,8 +48,8 @@ const ServiceController = {
 
             var data = await Service.find({
                 $and: [
-                    { code: { $regex: filters.codeF, $options:"$i" } },
-                    { name: { $regex: filters.nameF, $options:"$i" } },
+                    { code: { $regex: filters.codeF, $options:"i" } },
+                    { name: { $regex: filters.nameF, $options:"i" } },
                     filters.groupF != '' ? { groupId: filters.groupF } : {},
                     { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
@@ -57,8 +57,8 @@ const ServiceController = {
 
             var total = await Service.find({
                 $and: [
-                    { code: { $regex: filters.codeF, $options:"$i" } },
-                    { name: { $regex: filters.nameF, $options:"$i" } },
+                    { code: { $regex: filters.codeF, $options:"i" } },
+                    { name: { $regex: filters.nameF, $options:"i" } },
                     filters.groupF != '' ? { groupId: filters.groupF } : {},
                     { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
@@ -167,16 +167,16 @@ const ServiceController = {
 
             var data = await ServiceGroup.find({
                 $and: [
-                    { code: { $regex: filters.codeF, $options:"$i" } },
-                    { name: { $regex: filters.nameF, $options:"$i" } },
+                    { code: { $regex: filters.codeF, $options:"i" } },
+                    { name: { $regex: filters.nameF, $options:"i" } },
                     { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
             }).sort(sorts).limit(pages.size).skip(pages.from);
 
             var total = await ServiceGroup.find({
                 $and: [
-                    { code: { $regex: filters.codeF, $options:"$i" } },
-                    { name: { $regex: filters.nameF, $options:"$i" } },
+                    { code: { $regex: filters.codeF, $options:"i" } },
+                    { name: { $regex: filters.nameF, $options:"i" } },
                     { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
             }).count();

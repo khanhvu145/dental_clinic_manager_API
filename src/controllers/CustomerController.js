@@ -100,18 +100,18 @@ const CustomerController = {
 
             var data = await Customer.find({
                 $and: [
-                    { code: { $regex: filters.codeF, $options:"$i" } },
-                    { name: { $regex: filters.nameF, $options:"$i" } },
-                    { phone: { $regex: filters.phoneF, $options:"$i" } },
+                    { code: { $regex: filters.codeF, $options:"i" } },
+                    { name: { $regex: filters.nameF, $options:"i" } },
+                    { phone: { $regex: filters.phoneF, $options:"i" } },
                     { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
             }).sort(sorts).limit(pages.size).skip(pages.from);
 
             var total = await Customer.find({
                 $and: [
-                    { code: { $regex: filters.codeF, $options:"$i" } },
-                    { name: { $regex: filters.nameF, $options:"$i" } },
-                    { phone: { $regex: filters.phoneF, $options:"$i" } },
+                    { code: { $regex: filters.codeF, $options:"i" } },
+                    { name: { $regex: filters.nameF, $options:"i" } },
+                    { phone: { $regex: filters.phoneF, $options:"i" } },
                     { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
             }).count();

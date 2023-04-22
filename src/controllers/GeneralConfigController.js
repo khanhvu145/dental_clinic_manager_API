@@ -48,13 +48,13 @@ const GeneralConfigController = {
             var formData = req.body;
             var data = await GeneralConfig.find({
                 $and: [
-                    { type: { $regex: formData.type, $options:"$i" } },
+                    { type: { $regex: formData.type, $options:"i" } },
                     { isActive: { $in: formData.isActive == null ? [true, false] : formData.isActive } }
                 ]
             }).sort({ isActive: -1 });
             var total = await GeneralConfig.find({
                 $and: [
-                    { type: { $regex: formData.type, $options:"$i" } },
+                    { type: { $regex: formData.type, $options:"i" } },
                     { isActive: { $in: [true, false] } }
                 ]
             }).count();

@@ -219,18 +219,18 @@ const UserController = {
 
             var data = await User.find({
                 $and: [
-                    { code: { $regex: filters.codeF, $options:"$i" } },
-                    { name: { $regex: filters.nameF, $options:"$i" } },
-                    { username: { $regex: filters.usernameF, $options:"$i" } },
+                    { code: { $regex: filters.codeF, $options:"i" } },
+                    { name: { $regex: filters.nameF, $options:"i" } },
+                    { username: { $regex: filters.usernameF, $options:"i" } },
                     { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
             }).sort(sorts).limit(pages.size).skip(pages.from);
 
             var total = await User.find({
                 $and: [
-                    { code: { $regex: filters.codeF, $options:"$i" } },
-                    { name: { $regex: filters.nameF, $options:"$i" } },
-                    { username: { $regex: filters.usernameF, $options:"$i" } },
+                    { code: { $regex: filters.codeF, $options:"i" } },
+                    { name: { $regex: filters.nameF, $options:"i" } },
+                    { username: { $regex: filters.usernameF, $options:"i" } },
                     { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
             }).count();

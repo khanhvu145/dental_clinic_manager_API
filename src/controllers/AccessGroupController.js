@@ -8,9 +8,9 @@ const AccessGroupController = {
             if(formData.name == null || formData.name == '') {
                 return res.status(200).json({ success: false, error: "Hãy nhập tên nhóm người dùng" });
             }
-            if(formData.accesses.length == 0){
-                return res.status(200).json({ success: false, error: "Hãy phân quyền nhóm người dùng" });
-            }
+            // if(formData.accesses.length == 0){
+            //     return res.status(200).json({ success: false, error: "Hãy phân quyền nhóm người dùng" });
+            // }
             //Xử lý
             var exists = await AccessGroup.findOne({ name: formData.name });
             if(exists == null) {
@@ -49,9 +49,9 @@ const AccessGroupController = {
             if(formData.name == null || formData.name == '') {
                 return res.status(200).json({ success: false, error: "Hãy nhập tên nhóm người dùng" });
             }
-            if(formData.accesses.length == 0){
-                return res.status(200).json({ success: false, error: "Hãy phân quyền nhóm người dùng" });
-            }
+            // if(formData.accesses.length == 0){
+            //     return res.status(200).json({ success: false, error: "Hãy phân quyền nhóm người dùng" });
+            // }
             /**Kiểm tra tồn tại */
             const exist = await AccessGroup.findById(formData._id);
             if(exist == null) {
@@ -86,19 +86,19 @@ const AccessGroupController = {
 
             var data = await AccessGroup.find({
                 $and: [
-                    { name: { $regex: filters.nameF, $options:"$i" } },
+                    { name: { $regex: filters.nameF, $options:"i" } },
                     { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
             }).sort(sorts).limit(pages.size).skip(pages.from);
 
             var total = await AccessGroup.find({
                 $and: [
-                    { name: { $regex: filters.nameF, $options:"$i" } },
+                    { name: { $regex: filters.nameF, $options:"i" } },
                     { isActive: { $in: filters.statusF == null ? [true, false] : [filters.statusF] } }
                 ]
             }).count();
-
-            return res.status(200).json({ success: true, data: data, total: total });
+            
+            return res.status(200).json({ success: true, data: data });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });

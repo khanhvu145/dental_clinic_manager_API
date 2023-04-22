@@ -12,6 +12,9 @@ const convertDateToCron = require('../helpers/convertDateToCron');
 const moment = require('moment');
 const CronJob = require('cron').CronJob;
 const mongoose = require('mongoose');
+const sendMail = require('../helpers/sendMail');
+const path = require('path');
+const fs = require('fs');
 
 const AppointmentController = {
     booking: async(req, res) => {
@@ -298,12 +301,12 @@ const AppointmentController = {
                 }},
                 { $match: { 
                     $and: [
-                        { code: { $regex: filters.codeF, $options:"$i" } },
+                        { code: { $regex: filters.codeF, $options:"i" } },
                         { $or: [
-                                { customerName: { $regex: filters.customersF, $options:"$i" } },
-                                { customerPhone: { $regex: filters.customersF, $options:"$i" } },
-                                { customerPhysicalId: { $regex: filters.customersF, $options:"$i" } },
-                                { customerCode: { $regex: filters.customersF, $options:"$i" } },
+                                { customerName: { $regex: filters.customersF, $options:"i" } },
+                                { customerPhone: { $regex: filters.customersF, $options:"i" } },
+                                { customerPhysicalId: { $regex: filters.customersF, $options:"i" } },
+                                { customerCode: { $regex: filters.customersF, $options:"i" } },
                             ] 
                         },
                         { status: { $in: (filters.statusF.length > 0 && filters.statusF != null) ? filters.statusF : ["Booked", "Checkin", "Examined", "Cancelled"] } },
@@ -339,12 +342,12 @@ const AppointmentController = {
                 }},
                 { $match: { 
                     $and: [
-                        { code: { $regex: filters.codeF, $options:"$i" } },
+                        { code: { $regex: filters.codeF, $options:"i" } },
                         { $or: [
-                                { customerName: { $regex: filters.customersF, $options:"$i" } },
-                                { customerPhone: { $regex: filters.customersF, $options:"$i" } },
-                                { customerPhysicalId: { $regex: filters.customersF, $options:"$i" } },
-                                { customerCode: { $regex: filters.customersF, $options:"$i" } },
+                                { customerName: { $regex: filters.customersF, $options:"i" } },
+                                { customerPhone: { $regex: filters.customersF, $options:"i" } },
+                                { customerPhysicalId: { $regex: filters.customersF, $options:"i" } },
+                                { customerCode: { $regex: filters.customersF, $options:"i" } },
                             ] 
                         },
                         { status: { $in: (filters.statusF.length > 0 && filters.statusF != null) ? filters.statusF : ["Booked", "Checkin", "Examined", "Cancelled"] } },
@@ -409,7 +412,7 @@ const AppointmentController = {
             if(!exist.type.equals(data.type)){
                 const GeneralConfigData = await GeneralConfig.find({
                     $and: [
-                        { type: { $regex: 'appointment_type', $options:"$i" } },
+                        { type: { $regex: 'appointment_type', $options:"i" } },
                         { isActive: true }
                     ]
                 });
@@ -741,6 +744,64 @@ const AppointmentController = {
             }
 
             return res.status(200).json({ success: true, message: 'Chuyển lịch hẹn thành công', data: data.data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    sendMail: async(req, res) => {
+        try{
+            var formData = req.body;
+            /**Kiểm tra tồn tại */
+            const exist = await Appointment.findById(formData.id);
+            if(exist == null) {
+                return res.status(200).json({ success: false, error: "Lịch hẹn không tồn tại" });
+            }
+            else{
+                /**Kiểm tra trạng thái lịch hẹn */
+                if(exist.status != 'Booked'){
+                    return res.status(200).json({ success: false, error: "Trạng thái lịch hẹn không hợp lệ" });
+                }
+            }
+
+            /**Xử lý */
+            var customerInfo =  await Customer.findById(exist.customerId);
+            var dentistInfo =  await User.findById(exist.dentistId);
+            var serviceInfo =  await ServiceGroup.findById(exist.serviceGroupId);
+            if(customerInfo == null) {
+                return res.status(200).json({ success: false, error: "Không có thông tin khách hàng" });
+            }
+            if(dentistInfo == null) {
+                return res.status(200).json({ success: false, error: "Không có thông tin nha sĩ" });
+            }
+            if(serviceInfo == null) {
+                return res.status(200).json({ success: false, error: "Không có thông tin dịch vụ" });
+            }
+
+            var template = fs.readFileSync(path.join(__dirname, '/../content/emailTemplate/RemindEmailTemplate.html'),{encoding:'utf-8'});  
+
+            template = template.replace('{customerName}', customerInfo != null ? customerInfo.name : '');
+            template = template.replace('{code}', exist.code);
+            template = template.replace('{date}', moment(exist.date).format('DD/MM/YYYY').toString());
+            template = template.replace('{time}', exist.time);
+            template = template.replace('{dentistName}', dentistInfo != null ? dentistInfo.name : '');
+            template = template.replace('{service}', serviceInfo != null ? serviceInfo.name : '');
+           
+            if(customerInfo != null && !IsNullOrEmpty(customerInfo.email)) {
+                await sendMail({ to: customerInfo.email, subject: 'THƯ NHẮC HẸN', body: template });
+            }
+            
+            /**Log */
+            var log = [];
+            var item = {
+                column: 'Gửi lúc',
+                oldvalue: '',
+                newvalue: moment().format('DD/MM/YYYY hh:mm')
+            };
+            log.push(item);
+            await AppointmentLog.CreateLog(exist._id, 'Gửi nhắc hẹn đến khách hàng', log, Date.now());
+
+            return res.status(200).json({ success: true, message: 'Gửi nhắc hẹn đến khách hàng thành công' });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
