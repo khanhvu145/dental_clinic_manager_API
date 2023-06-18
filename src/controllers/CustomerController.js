@@ -250,34 +250,35 @@ const CustomerController = {
             //#endregion
 
             //#region Upload files
-            if(formData.attachFiles != null && formData.attachFiles.length > 0){
-                var dem = 0;
-                var lengthArr = formData.attachFiles[dem].fileList.length;
-                formData.attachFiles[dem].files = [];
-                if(fileList != null && fileList.length > 0){
-                    for(let i = 0; i < fileList.length; i++){
-                        var file = fileList[i];
-                        if(file){
-                            if(i == lengthArr){
-                                dem += 1;
-                                lengthArr = formData.attachFiles[dem].fileList.length;
-                                formData.attachFiles[dem].files = [];
+            if(fileList != null && fileList.length > 0){
+                console.log('Step 0.1')
+                if(formData.attachFiles != null && formData.attachFiles.length > 0){
+                    console.log('Step 0.2')
+                    var dem = 0;
+                    var dem2 = 0;
+                    for(let i = 0; i < formData.attachFiles.length; i++){
+                        console.log('Step 1 - Bắt đầu vòng lặp (ngoài) thứ ' + i)
+                        var dem = dem2;
+                        var lengthArr = formData.attachFiles[i].fileList.length;
+                        formData.attachFiles[i].files = [];
+                        console.log('Step 2 - Kiểm tra các biến ' + dem + ' - ' + dem2 + ' - ' + lengthArr)
+                        for(let j = dem; j < lengthArr + dem; j++){
+                            console.log('Step 3 - Bắt đầu vòng lặp (trong) thứ ' + j)
+                            dem2 += 1;
+                            var file = fileList[j];
+                            console.log('Step 4 - Kiểm tra các biến ' + dem + ' - ' + dem2 + ' - ' + file)
+                            if(file){
+                                var fileName = Date.now().toString() + '-' + file.originalname;
+                                var path = firebaseDB.bucket.file('examination/' + formData.customerId + '/' + fileName);
+                                var buffer = file.buffer;
+                                var image = await uploadFile(path, buffer);
+                                var fileURL = await getFileUpload(path);
+                                await formData.attachFiles[i].files.push(fileURL[0]);
+                                console.log('Step 5 - Gán file thành công')
                             }
-                            var fileName = Date.now().toString() + '-' + file.originalname;
-                            var path = firebaseDB.bucket.file('examination/' + formData.customerId + '/' + fileName);
-                            var buffer = file.buffer;
-                            var image = await uploadFile(path, buffer);
-                            var fileURL = await getFileUpload(path);
-                            await formData.attachFiles[dem].files.push(fileURL[0]);
                         }
                     }
                 }
-                formData.attachFiles = formData.attachFiles.map(x => {
-                    return {
-                      ...x,
-                      fileList: null
-                    }
-                });
             }
             //#endregion
 
@@ -304,6 +305,7 @@ const CustomerController = {
                 treatmentAmount: formData.treatmentAmount ? parseFloat(formData.treatmentAmount) : parseFloat(0),
                 totalDiscountAmount: formData.totalDiscountAmount ? parseFloat(formData.totalDiscountAmount) : parseFloat(0),
                 totalAmount: formData.totalAmount ? parseFloat(formData.totalAmount) : parseFloat(0),
+                note: formData.note, 
                 createdAt: Date.now(),
                 createdBy: formData.createdBy ? formData.createdBy : ''
             }).save();

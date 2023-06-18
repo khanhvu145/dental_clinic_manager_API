@@ -51,6 +51,9 @@ const tw_Examination = new Schema({
         type: Schema.Types.Number,  
         default: 0
     },
+    note: {
+        type: String,
+    },
     createdAt: {
         type: Date,
     },
