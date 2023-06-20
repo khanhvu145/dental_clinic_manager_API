@@ -7,6 +7,7 @@ const uploadFile = require('../helpers/uploadFile');
 const getFileUpload = require('../helpers/getFileUpload');
 const moment = require('moment');
 const IsNullOrEmpty = require('../helpers/IsNullOrEmpty');
+const mongoose = require('mongoose');
 
 const CustomerController = {
     create: async(req, res) => {
@@ -291,8 +292,17 @@ const CustomerController = {
                     }
                 });
             }
+            if(formData.diagnosisTreatment != null && formData.diagnosisTreatment.length > 0){
+                formData.diagnosisTreatment = formData.diagnosisTreatment.map(x => {
+                    return {
+                      ...x,
+                      isJaw: x.isJaw == 'true' ? true : false
+                    }
+                });
+            }
             const newData = await new Examination({
                 customerId: formData.customerId, 
+                dentistId: formData.dentistId, 
                 anamnesis: formData.anamnesis || [], 
                 "allergy.allergies": formData.allergy.allergies || [],
                 "allergy.other": formData.allergy.other || '',
@@ -331,6 +341,85 @@ const CustomerController = {
         try{
             const data = await Examination.find({ customerId: req.body.customerId }).sort({createdAt:-1}).limit(1);
             return res.status(200).json({ success: true, data: data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getByQueryExamination: async(req, res) => {
+        try{
+            var filters = req.body.filters;
+            var sorts = req.body.sorts;
+            var pages = req.body.pages;
+            var listDentistId = filters.dentistsF.map(x => mongoose.Types.ObjectId(x));
+            var dateFromF = null;
+            var dateToF = null;
+            if(filters.dateF != null && filters.dateF != '' && filters.dateF.length > 0){
+                dateFromF = new Date(moment(filters.dateF[0]).format('YYYY/MM/DD'));
+                dateToF = new Date(moment(filters.dateF[1]).format('YYYY/MM/DD'));
+            }
+            
+            var data = await Examination.aggregate([
+                { $lookup: {
+                    from: "tw_users",
+                    localField: "dentistId",
+                    foreignField: "_id",
+                    as: "dentistInfo"
+                }},
+                {
+                    $addFields: {
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] }
+                    }
+                },
+                { $project: { 
+                    dentistInfo: 0
+                }},
+                { $match: { 
+                    $and: [
+                        { customerId: mongoose.Types.ObjectId(filters.customerF) },
+                        { code: { $regex: filters.codeF, $options:"i" } },
+                        dateFromF ? { createdAt: { $gte: dateFromF } } : {},
+                        dateToF ? { createdAt: { $lte: dateToF } } : {},
+                        (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
+                            dentistId: { $in: listDentistId }
+                        } : {}
+                    ]
+                }},
+                { $sort: { createdAt: sorts }},
+                { $limit: (pages.from + pages.size) },
+                { $skip: pages.from }
+            ]);
+            
+            var total = await Examination.aggregate([
+                { $lookup: {
+                    from: "tw_users",
+                    localField: "dentistId",
+                    foreignField: "_id",
+                    as: "dentistInfo"
+                }},
+                {
+                    $addFields: {
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
+                    }
+                },
+                { $project: { 
+                    dentistInfo: 0
+                }},
+                { $match: { 
+                    $and: [
+                        { customerId: mongoose.Types.ObjectId(filters.customerF) },
+                        { code: { $regex: filters.codeF, $options:"i" } },
+                        dateFromF ? { date: { $gte: dateFromF } } : {},
+                        dateToF ? { date: { $lte: dateToF } } : {},
+                        (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
+                            dentistId: { $in: listDentistId }
+                        } : {}
+                    ]
+                }},
+                { $count: "count" }
+            ]);
+            
+            return res.status(200).json({ success: true, data: data, total: total.length > 0 ? total[0].count : 0 });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });

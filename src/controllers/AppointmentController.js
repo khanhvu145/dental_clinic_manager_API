@@ -244,9 +244,13 @@ const AppointmentController = {
             var sorts = req.body.sorts;
             var pages = req.body.pages;
             var listDentistId = filters.dentistsF.map(x => mongoose.Types.ObjectId(x));
-            var dateFromF = new Date(moment(filters.dateF[0]).format('YYYY/MM/DD'));
-            var dateToF = new Date(moment(filters.dateF[1]).format('YYYY/MM/DD'));
-
+            var dateFromF = null;
+            var dateToF = null;
+            if(filters.dateF != null && filters.dateF != '' && filters.dateF.length > 0){
+                dateFromF = new Date(moment(filters.dateF[0]).format('YYYY/MM/DD'));
+                dateToF = new Date(moment(filters.dateF[1]).format('YYYY/MM/DD'));
+            }
+            
             var data = await Appointment.aggregate([
                 { $lookup: {
                     from: "tw_customers",
@@ -310,8 +314,8 @@ const AppointmentController = {
                             ] 
                         },
                         { status: { $in: (filters.statusF.length > 0 && filters.statusF != null) ? filters.statusF : ["Booked", "Checkin", "Examined", "Cancelled"] } },
-                        { date: { $gte: dateFromF } },
-                        { date: { $lte: dateToF } },
+                        dateFromF ? { date: { $gte: dateFromF } } : {},
+                        dateToF ? { date: { $lte: dateToF } } : {},
                         (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
                             dentistId: { $in: listDentistId }
                         } : {}
@@ -351,8 +355,8 @@ const AppointmentController = {
                             ] 
                         },
                         { status: { $in: (filters.statusF.length > 0 && filters.statusF != null) ? filters.statusF : ["Booked", "Checkin", "Examined", "Cancelled"] } },
-                        { date: { $gte: dateFromF } },
-                        { date: { $lte: dateToF } },
+                        dateFromF ? { date: { $gte: dateFromF } } : {},
+                        dateToF ? { date: { $lte: dateToF } } : {},
                         (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
                             dentistId: { $in: listDentistId }
                         } : {}

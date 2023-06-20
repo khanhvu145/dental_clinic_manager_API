@@ -3,6 +3,7 @@ const multer = require('../middlewares/Multer');
 const customerController = require('../controllers/CustomerController');
 const router = express.Router();
 
+router.post('/getByQueryExamination', customerController.getByQueryExamination);
 router.post('/getLatestExamination', customerController.getLatestExamination);
 router.post('/createExamination', multer.any('attachFiles'), customerController.createExamination);
 router.post('/create', multer.single('imageFile'), customerController.create);

@@ -11,6 +11,11 @@ const tw_Examination = new Schema({
         required: true,
         ref: "tw_customers"
     },
+    dentistId: { 
+        type: Schema.Types.ObjectId, 
+        required: true,
+        ref: "tw_users"
+    },
     anamnesis: { 
         type: Array,
     },
