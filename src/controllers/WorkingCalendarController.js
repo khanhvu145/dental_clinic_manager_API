@@ -1,16 +1,6 @@
 const models = require('../models/tw_Appointment');
 const Appointment = models.AppointmentModel;
 const AppointmentLog = models.AppointmentLogModel;
-const ServiceGroup = require('../models/tw_ServiceGroup');
-const GeneralConfig = require('../models/tw_GeneralConfig');
-const User = require('../models/tw_User');
-const Customer = require('../models/tw_Customer');
-const AppointmentConfig = require('../models/tw_AppointmentConfig');
-const IsNullOrEmpty = require('../helpers/IsNullOrEmpty');
-const isObjectId = require('../helpers/isObjectId');
-const convertDateToCron = require('../helpers/convertDateToCron');
-const moment = require('moment');
-const CronJob = require('cron').CronJob;
 const mongoose = require('mongoose');
 
 const WorkingCalendarController = {

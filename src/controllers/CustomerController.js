@@ -1,5 +1,9 @@
-const Customer = require('../models/tw_Customer');
+const tw_Customer = require('../models/tw_Customer');
+const Customer = tw_Customer.CustomerModel;
+const CustomerLog = tw_Customer.CustomerLogModel;
 const Examination = require('../models/tw_Examination');
+const Payment = require('../models/tw_Payment');
+const Receipts = require('../models/tw_Receipts');
 const bcrypt = require('bcrypt');
 const salt = bcrypt.genSaltSync(10);
 const firebaseDB = require('../helpers/firebase');
@@ -331,6 +335,33 @@ const CustomerController = {
             var data = await Examination.findById(newData._id);
             //#endregion
 
+            //#region Tạo thanh toán
+            if(data){
+                //Chuẩn hóa dữ liệu
+                const paymentData = {
+                    examinationId: data._id,
+                    customerId: data.customerId,
+                    amount: data.totalAmount,
+                    paidAmount: parseFloat(0),
+                    remainAmount: data.totalAmount,
+                    status: 'unpaid',
+                    createdAt: Date.now(),
+                    createdBy: data.createdBy
+                };
+                var payment = await Payment.createPayment(paymentData);
+                console.log(payment);
+                if(payment.code <= 0){
+                    return res.status(200).json({ success: false, error: payment.error });
+                }
+            }
+            //#endregion
+
+            //#region Ghi log
+            if(data){
+                await CustomerLog.CreateLog(data.customerId, 'examination', data._id, formData.createdBy);
+            }
+            //#endregion
+
             return res.status(200).json({ success: true, message: 'Tạo phiếu khám thành công', data: data });
         }
         catch(err){
@@ -425,6 +456,119 @@ const CustomerController = {
             return res.status(400).json({ success: false, error: err });
         }
     },
+    getByQueryDiary: async(req, res) => {
+        try{
+            var filters = req.body.filters;
+            var sorts = new Map([req.body.sorts.split("&&")]);
+            var pages = req.body.pages;
+            var dateFromF = null;
+            var dateToF = null;
+            if(filters.dateF != null && filters.dateF != '' && filters.dateF.length > 0){
+                dateFromF = new Date(moment(filters.dateF[0]).format('YYYY/MM/DD'));
+                dateToF = new Date(moment(filters.dateF[1]).format('YYYY/MM/DD'));
+            }
+            
+            var data = await CustomerLog.find({
+                $and: [
+                    { customerId: mongoose.Types.ObjectId(filters.customerF) },
+                    dateFromF ? { createdAt: { $gte: dateFromF } } : {},
+                    dateToF ? { createdAt: { $lte: dateToF } } : {},
+                    (filters.typeF && filters.typeF != 'all') ? { type: filters.typeF } : {}
+                ]
+            }).sort(sorts).limit(pages.size).skip(pages.from);
+            // var newData = [];
+            // if(data && data.length > 0){
+            //     for(let i = 0; i < data.length; i++){
+            //         if(data[i].type == 'examination'){
+            //             var examinationData = await Examination.findById(data[i].targetId);
+            //             if(examinationData){
+            //                 data[i].code = examinationData.code;
+            //                 // console.log(data[i].code)
+            //                 newData.push(data[i]);
+            //                 console.log(newData)
+            //             }
+            //         }
+            //         else if(data[i].type == 'payment'){
+            //             var paymentData = await Receipts.findById(data[i].targetId);
+            //             if(paymentData){
+            //                 data[i].code = paymentData.code;
+            //                 newData.push(data[i]);
+            //                 console.log(newData)
+            //             }
+            //         }
+            //     }
+            //     // newData = await data.map(async(item) => {
+            //     //     if(item.type == 'examination'){
+            //     //         var examinationData = await Examination.findById(mongoose.Types.ObjectId(item.targetId));
+            //     //         if(examinationData){
+            //     //             return {
+            //     //                 ...item,
+            //     //                 code: examinationData.code
+            //     //             }
+            //     //         }
+            //     //     }
+            //     //     else if(item.type == 'payment'){
+            //     //         var paymentData = await Receipts.findById(mongoose.Types.ObjectId(item.targetId));
+            //     //         if(paymentData){
+            //     //             return {
+            //     //                 ...item,
+            //     //                 code: paymentData.code
+            //     //             }
+            //     //         }
+            //     //     }
+            //     //     else{
+            //     //         return {
+            //     //             ...item
+            //     //         }
+            //     //     }
+            //     // });
+            // }
+
+            var total = await CustomerLog.find({
+                $and: [
+                    { customerId: mongoose.Types.ObjectId(filters.customerF) },
+                    dateFromF ? { createdAt: { $gte: dateFromF } } : {},
+                    dateToF ? { createdAt: { $lte: dateToF } } : {},
+                    (filters.typeF && filters.typeF != 'all') ? { type: filters.typeF } : {}
+                ]
+            }).count();
+
+            return res.status(200).json({ success: true, data: data, total: total });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getExaminationById: async(req, res) => {
+        try{
+            var data = await Examination.aggregate([
+                { $lookup: {
+                    from: "tw_users",
+                    localField: "dentistId",
+                    foreignField: "_id",
+                    as: "dentistInfo"
+                }},
+                {
+                    $addFields: {
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] }
+                    }
+                },
+                { $project: { 
+                    dentistInfo: 0
+                }},
+                { $match: { 
+                    $and: [
+                        { _id: mongoose.Types.ObjectId(req.params.id) },
+                    ]
+                }},
+                { $limit: 1 },
+            ]);
+            return res.status(200).json({ success: true, data: data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    }
 }
 
 module.exports = CustomerController;
