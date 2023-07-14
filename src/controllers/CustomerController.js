@@ -304,6 +304,14 @@ const CustomerController = {
                     }
                 });
             }
+            if(formData.attachFiles != null && formData.attachFiles.length > 0){
+                formData.attachFiles = formData.attachFiles.map(x => {
+                    return {
+                      ...x,
+                      fileList: null
+                    }
+                });
+            }
             const newData = await new Examination({
                 customerId: formData.customerId, 
                 dentistId: formData.dentistId, 
@@ -397,13 +405,26 @@ const CustomerController = {
                     foreignField: "_id",
                     as: "dentistInfo"
                 }},
+                { $lookup: {
+                    from: "tw_customers",
+                    localField: "customerId",
+                    foreignField: "_id",
+                    as: "customerInfo"
+                }},
                 {
                     $addFields: {
-                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] }
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
+                        "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
+                        "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
+                        "customerBirthday": { $arrayElemAt: ["$customerInfo.birthday", 0] },
+                        "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
+                        "customerPhysicalId": { $arrayElemAt: ["$customerInfo.physicalId", 0] },
+                        "customerPhone": { $arrayElemAt: ["$customerInfo.phone", 0] },
                     }
                 },
                 { $project: { 
-                    dentistInfo: 0
+                    dentistInfo: 0,
+                    customerInfo: 0
                 }},
                 { $match: { 
                     $and: [
