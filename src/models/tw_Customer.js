@@ -92,6 +92,9 @@ const tw_Customer_Log = new Schema({
         type: Schema.Types.ObjectId, 
         required: true,
     },
+    content: { 
+        type: Object, 
+    },
     createdAt: {
         type: Date,
     },
@@ -100,11 +103,12 @@ const tw_Customer_Log = new Schema({
     }
 });
 
-tw_Customer_Log.statics.CreateLog = async function (customerId, type, targetId, currentUser){
+tw_Customer_Log.statics.CreateLog = async function (customerId, type, targetId, content, currentUser){
     var log = {};
     log.customerId = customerId;
     log.type = type;
     log.targetId = targetId;
+    log.content = content;
     log.createdBy = currentUser ? currentUser : 'System';
     log.createdAt = Date.now();
     await this.create(log, function(err, result){

@@ -235,7 +235,7 @@ tw_Appointment.statics.booking = async function(formData){
             }
         }
 
-        /**Log */
+        //#region Log
         var log = [];
         var isUpdate = false;
         if(isObjectId(data.dentistId)){
@@ -318,6 +318,16 @@ tw_Appointment.statics.booking = async function(formData){
         {
             await AppointmentLogModel.CreateLog(data._id, 'create', log, formData.createdBy);
         }
+        //#endregion
+
+        //#region Log khách hàng
+        if(data){
+            var content = {
+                code: data.code,
+            };
+            await CustomerLog.CreateLog(data.customerId, 'booking', data._id, content, formData.createdBy);
+        }
+        //#endregion
 
         return { code: 1, data: data, error: '' };
     }

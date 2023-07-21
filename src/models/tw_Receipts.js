@@ -104,7 +104,10 @@ tw_Receipts.statics.createReceipts = async function(data, files){
 
         //#region Ghi log
         if(data){
-            await CustomerLog.CreateLog(data.customerId, 'payment', data._id, data.createdBy);
+            var content = {
+                code: data.code
+            }
+            await CustomerLog.CreateLog(data.customerId, 'payment', data._id, content, data.createdBy);
         }
         //#endregion
 

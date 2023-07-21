@@ -89,6 +89,92 @@ const CustomerController = {
                     }
                 );
                 var data = await Customer.findById(newData._id);
+
+                //#region Log
+                // var log = [];
+                // var isUpdate = false;
+                // if(!IsNullOrEmpty(data.name)) {
+                //     isUpdate = true;
+                //     var item = {
+                //         column: 'Họ và tên',
+                //         oldvalue: '',
+                //         newvalue: data.name
+                //     };
+                //     log.push(item);
+                // }
+                // if(!IsNullOrEmpty(data.physicalId)) {
+                //     isUpdate = true;
+                //     var item = {
+                //         column: 'CMND/CCCD',
+                //         oldvalue: '',
+                //         newvalue: data.physicalId
+                //     };
+                //     log.push(item);
+                // }
+                // if(data.dateOfIssue != null) {
+                //     isUpdate = true;
+                //     var item = {
+                //         column: 'Ngày cấp',
+                //         oldvalue: '',
+                //         newvalue: moment(data.dateOfIssue).format('DD/MM/YYYY')
+                //     };
+                //     log.push(item);
+                // }
+                // if(!IsNullOrEmpty(data.placeOfIssue)) {
+                //     isUpdate = true;
+                //     var item = {
+                //         column: 'Nơi cấp',
+                //         oldvalue: '',
+                //         newvalue: data.placeOfIssue
+                //     };
+                //     log.push(item);
+                // }
+                // if(!IsNullOrEmpty(data.phone)) {
+                //     isUpdate = true;
+                //     var item = {
+                //         column: 'Số điện thoại',
+                //         oldvalue: '',
+                //         newvalue: data.phone
+                //     };
+                //     log.push(item);
+                // }
+                // if(!IsNullOrEmpty(data.email)) {
+                //     isUpdate = true;
+                //     var item = {
+                //         column: 'Email',
+                //         oldvalue: '',
+                //         newvalue: data.email
+                //     };
+                //     log.push(item);
+                // }
+                // if(data.birthday != null) {
+                //     isUpdate = true;
+                //     var item = {
+                //         column: 'Ngày sinh',
+                //         oldvalue: '',
+                //         newvalue: moment(data.birthday).format('DD/MM/YYYY')
+                //     };
+                //     log.push(item);
+                // }
+                // if(!IsNullOrEmpty(data.gender)) {
+                //     isUpdate = true;
+                //     var item = {
+                //         column: 'Giới tính',
+                //         oldvalue: '',
+                //         newvalue: data.gender == 'male' ? 'Nam' : data.gender == 'female' ? 'Nữ' : 'Khác'
+                //     };
+                //     log.push(item);
+                // }
+                // if(!IsNullOrEmpty(data.address.building)) {
+                //     isUpdate = true;
+                //     var item = {
+                //         column: 'Địa chỉ',
+                //         oldvalue: '',
+                //         newvalue: data.address.building
+                //     };
+                //     log.push(item);
+                // }
+                //#endregion
                 return res.status(200).json({ success: true, message: 'Tạo thành công', data: data });
             }
             else{
@@ -304,14 +390,6 @@ const CustomerController = {
                     }
                 });
             }
-            if(formData.attachFiles != null && formData.attachFiles.length > 0){
-                formData.attachFiles = formData.attachFiles.map(x => {
-                    return {
-                      ...x,
-                      fileList: null
-                    }
-                });
-            }
             const newData = await new Examination({
                 customerId: formData.customerId, 
                 dentistId: formData.dentistId, 
@@ -366,7 +444,10 @@ const CustomerController = {
 
             //#region Ghi log
             if(data){
-                await CustomerLog.CreateLog(data.customerId, 'examination', data._id, formData.createdBy);
+                var content = {
+                    code: data.code,
+                };
+                await CustomerLog.CreateLog(data.customerId, 'examination', data._id, content, formData.createdBy);
             }
             //#endregion
 
