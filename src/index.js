@@ -19,6 +19,7 @@ const appointmentConfigRoute = require('./routes/appointmentConfig');
 const smtpConfigRoute = require('./routes/smtpconfig');
 const workingCalendarRoute = require('./routes/workingCalendar');
 const paymentRoute = require('./routes/payment');
+const receiptsRoute = require('./routes/receipts');
 
 //CONNECT DATABASE
 dotenv.config();
@@ -46,6 +47,7 @@ app.use('/api/appointmentConfig', appointmentConfigRoute);
 app.use('/api/smtpConfig', smtpConfigRoute);
 app.use('/api/workingCalendar', workingCalendarRoute);
 app.use('/api/payment', paymentRoute);
+app.use('/api/receipts', receiptsRoute);
 
 app.get("/", (req, res) => {
     res.json({ message: "THIS IS API FOR DENTAL CLINIC MANAGER WEB" });
