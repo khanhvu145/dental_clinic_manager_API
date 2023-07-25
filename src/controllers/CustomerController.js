@@ -670,6 +670,38 @@ const CustomerController = {
         catch(err){
             return res.status(400).json({ success: false, error: err });
         }
+    },
+    cancelExamination: async (req, res) => {
+        try{
+            // Kiểm tra tồn tại
+            var exist = await Examination.findById(req.params.id);
+            if(exist == null) {
+                return res.status(200).json({ success: false, error: "Phiếu khám không tồn tại" });
+            }
+            // Kiểm tra thanh toán
+            var receipts = await Receipts.find({ examinationId: mongoose.Types.ObjectId(exist._id) });
+            if(receipts != null && receipts.length > 0){
+                return res.status(200).json({ success: false, error: "Phiếu khám đã phát sinh thanh toán" });
+            }
+            //Xử lý hủy phiếu khám
+            Examination.delete({ _id: mongoose.Types.ObjectId(exist._id)})
+                .then(() => {
+                    //Xử lý hủy thanh toán của phiếu khám
+                    Payment.delete({ examinationId: mongoose.Types.ObjectId(exist._id)})
+                    .then(() => {
+                        return res.status(200).json({ success: true });
+                    })
+                    .catch(() => {
+                        return res.status(200).json({ success: false, error: "Hủy thanh toán của phiếu thu thất bại" });
+                    }); 
+                })
+                .catch(() => {
+                    return res.status(200).json({ success: false, error: "Hủy phiếu khám thất bại" });
+                }); 
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
     }
 }
 

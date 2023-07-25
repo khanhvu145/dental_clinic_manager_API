@@ -100,18 +100,54 @@ tw_Receipts.statics.createReceipts = async function(data, files){
             }
         );
 
-        var data = await _this.findById(newReceipts._id);
+        var newData = await _this.aggregate([
+            { $lookup: {
+                from: "tw_customers",
+                localField: "customerId",
+                foreignField: "_id",
+                as: "customerInfo"
+            }},
+            { $lookup: {
+                from: "tw_examinations",
+                localField: "examinationId",
+                foreignField: "_id",
+                as: "examinationInfo"
+            }},
+            {
+                $addFields: {
+                    "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
+                    "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
+                    "customerBirthday": { $arrayElemAt: ["$customerInfo.birthday", 0] },
+                    "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
+                    "customerPhysicalId": { $arrayElemAt: ["$customerInfo.physicalId", 0] },
+                    "customerPhone": { $arrayElemAt: ["$customerInfo.phone", 0] },
+                    "examinationCode": { $arrayElemAt: ["$examinationInfo.code", 0] }
+                }
+            },
+            { $project: { 
+                customerInfo: 0,
+                examinationInfo: 0
+            }},
+            { $match: { 
+                $and: [
+                    { _id: mongoose.Types.ObjectId(newReceipts._id) },
+                ]
+            }},
+            { $sort: { createdAt: -1 }},
+        ]);
+
+        if(newData == null || newData.length <= 0){
+            return { code: -1, error: 'Tạo phiếu thu không thành công', data: {} };
+        }
 
         //#region Ghi log
-        if(data){
-            var content = {
-                code: data.code
-            }
-            await CustomerLog.CreateLog(data.customerId, 'payment', data._id, content, data.createdBy);
+        var content = {
+            code: newData[0].code
         }
+        await CustomerLog.CreateLog(newData[0].customerId, 'payment', newData[0]._id, content, newData[0].createdBy);
         //#endregion
 
-        return { code: 1, error: '', data: data };
+        return { code: 1, error: '', data: newData[0] };
     }
     catch(err){
         console.log(err);

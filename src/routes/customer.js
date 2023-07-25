@@ -3,6 +3,7 @@ const multer = require('../middlewares/Multer');
 const customerController = require('../controllers/CustomerController');
 const router = express.Router();
 
+router.delete('/cancelExamination/:id/', customerController.cancelExamination);
 router.post('/getByQueryDiary', customerController.getByQueryDiary);
 router.get('/getExaminationById/:id/', customerController.getExaminationById);
 router.post('/getByQueryExamination', customerController.getByQueryExamination);
