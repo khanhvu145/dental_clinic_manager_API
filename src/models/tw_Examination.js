@@ -37,12 +37,32 @@ const tw_Examination = new Schema({
             other: { type: String },
         }
     },
-    attachFiles: { 
-        type: Array,
-    },
+    // attachFiles: { 
+    //     type: Array,
+    //     default: []
+    // },
+    // diagnosisTreatment: { 
+    //     type: Array,
+    // },
     diagnosisTreatment: { 
-        type: Array,
-        required: true,
+        type: [
+            {
+                key: { type: Schema.Types.Number },
+                toothType: { type: String, required: true, },
+                isJaw: { type: Boolean, default: false},
+                jaw: { type: Array, default: [] },
+                toothList: { type: Array, default: [] },
+                diagnose: { type: String, default: '' },
+                serviceGroupId: { type: Schema.Types.ObjectId, required: true, },
+                serviceId: { type: Schema.Types.ObjectId, required: true, },
+                quantity: { type: Schema.Types.Number, default: 0 },
+                quantityJaw: { type: Schema.Types.Number, default: 0 },
+                unitPrice: { type: Schema.Types.Number, default: 0 },
+                discount: { type: Schema.Types.Number, default: 0 },
+                totalPrice: { type: Schema.Types.Number, default: 0 },
+            }
+        ],
+        default: []
     },
     treatmentAmount: { 
         type: Schema.Types.Number,  
@@ -57,6 +77,9 @@ const tw_Examination = new Schema({
         default: 0
     },
     note: {
+        type: String,
+    },
+    status: {
         type: String,
     },
     createdAt: {
