@@ -439,7 +439,7 @@ const CustomerController = {
     },
     getLatestExamination: async(req, res) => {
         try{
-            const data = await Examination.find({ customerId: req.body.customerId }).sort({createdAt:-1}).limit(1);
+            const data = await Examination.find({ customerId: req.body.customerId, status: 'approved' }).sort({createdAt:-1}).limit(1);
             return res.status(200).json({ success: true, data: data });
         }
         catch(err){
@@ -495,6 +495,9 @@ const CustomerController = {
                         dateToF ? { createdAt: { $lte: dateToF } } : {},
                         (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
                             dentistId: { $in: listDentistId }
+                        } : {},
+                        (filters.statusF.length > 0 && filters.statusF != null) ? { 
+                            status: { $in: filters.statusF }
                         } : {}
                     ]
                 }},
@@ -844,7 +847,128 @@ const CustomerController = {
             .catch(() => {
                 return res.status(200).json({ success: false, error: "Xóa file không thành công" });
             }); 
-
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    confirmExamination: async (req, res) => {
+        try{
+            var formData = req.body;
+            //#region Kiểm tra thông tin
+            const exists = await Examination.findById(formData.id);
+            if(exists == null) {
+                return res.status(200).json({ success: false, error: "Không có thông tin phiếu khám" });
+            }
+            else{
+                if(exists.status != 'new'){
+                    return res.status(200).json({ success: false, error: "Trạng thái phiếu khám không thể xác nhận" });
+                }
+                if(exists.diagnosisTreatment == null || exists.diagnosisTreatment.length <= 0){
+                    return res.status(200).json({ success: false, error: "Chưa có thông tin khám và điều trị" });
+                }
+            }
+            //#endregion
+            //#region Xử lý
+            await Examination.updateOne(
+                { _id: exists._id }, 
+                {
+                    $set: { 
+                        status: 'approved',
+                        approvedAt: Date.now(),
+                        approvedBy: formData.approvedBy ? formData.approvedBy : ''
+                    }
+                }
+            ).then(async() => {
+                try{
+                    //#region Tạo thanh toán
+                    var data = await Examination.findById(exists._id);
+                    //Chuẩn hóa dữ liệu
+                    if(data){
+                        const paymentData = {
+                            examinationId: exists._id,
+                            customerId: exists.customerId,
+                            amount: exists.totalAmount,
+                            paidAmount: parseFloat(0),
+                            remainAmount: exists.totalAmount,
+                            status: 'unpaid',
+                            createdAt: Date.now(),
+                            createdBy: formData.approvedBy
+                        };
+                        var payment = await Payment.createPayment(paymentData);
+                        console.log(payment);
+                        if(payment.code <= 0){
+                            return res.status(200).json({ success: false, error: payment.error });
+                        }
+                    }
+                    return res.status(200).json({ success: true, message: 'Xác nhận điều trị thành công', data: data });
+                    //#endregion
+                }
+                catch (e){
+                    return res.status(200).json({ success: false, error: e });
+                }
+            })
+            .catch(() => {
+                return res.status(200).json({ success: false, error: "Xác nhận điều trị không thành công" });
+            }); 
+            //#endregion
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    cancelExamination: async (req, res) => {
+        try{
+            var formData = req.body;
+            //#region Kiểm tra thông tin
+            const exists = await Examination.findById(formData.id);
+            if(exists == null) {
+                return res.status(200).json({ success: false, error: "Không có thông tin phiếu khám" });
+            }
+            else{
+                if(exists.status == 'cancelled'){
+                    return res.status(200).json({ success: false, error: "Phiếu khám đã được hủy. Không thể hủy." });
+                }
+            }
+            //#endregion
+            //#region Xử lý
+            await Examination.updateOne(
+                { _id: exists._id }, 
+                {
+                    $set: { 
+                        status: 'cancelled',
+                        cancelReason: formData.cancelReason || '',
+                        cancelledAt: Date.now(),
+                        cancelledBy: formData.cancelledBy ? formData.cancelledBy : ''
+                    }
+                }
+            ).then(async() => {
+                try{
+                    //#region Cập nhật lại thanh toán của phiếu khám
+                    const payment = await Payment.findOne({ examinationId: exists._id });
+                    if(payment != null) {
+                        //Lấy danh sách phiếu thu
+                        var receiptsList = await Receipts.find({ paymentId: payment._id });
+                        if(receiptsList != null && receiptsList.length > 0) {
+                            for(let i = 0; i < receiptsList.length; i++) {
+                                var result = await Receipts.cancelReceipts(receiptsList[i]._id, `Hủy do phiếu khám ${exists.code} được hủy.`, formData.cancelledBy);
+                                if(result && result.code < 0){
+                                    console.log(result.error)
+                                }
+                            }
+                        }
+                    }
+                    //#endregion
+                    return res.status(200).json({ success: true, message: 'Hủy phiếu khám thành công', data: {} });
+                }
+                catch (e){
+                    return res.status(200).json({ success: false, error: e });
+                }
+            })
+            .catch(() => {
+                return res.status(200).json({ success: false, error: "Xác nhận điều trị không thành công" });
+            }); 
+            //#endregion
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });

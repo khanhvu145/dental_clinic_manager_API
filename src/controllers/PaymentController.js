@@ -39,7 +39,8 @@ const PaymentController = {
                     $addFields: {
                         "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
                         "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
-                        "examinationCode": { $arrayElemAt: ["$examinationInfo.code", 0] }
+                        "examinationCode": { $arrayElemAt: ["$examinationInfo.code", 0] },
+                        "examinationStatus": { $arrayElemAt: ["$examinationInfo.status", 0] }
                     }
                 },
                 { $project: { 
@@ -54,7 +55,8 @@ const PaymentController = {
                         dateToF ? { createdAt: { $lte: dateToF } } : {},
                         (filters.statusF.length > 0 && filters.statusF != null) ? { 
                             status: { $in: filters.statusF }
-                        } : {}
+                        } : {},
+                        { examinationStatus: { $ne: 'cancelled' } }
                     ]
                 }},
                 { $sort: { createdAt: sorts }},
@@ -79,7 +81,8 @@ const PaymentController = {
                     $addFields: {
                         "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
                         "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
-                        "examinationCode": { $arrayElemAt: ["$examinationInfo.code", 0] }
+                        "examinationCode": { $arrayElemAt: ["$examinationInfo.code", 0] },
+                        "examinationStatus": { $arrayElemAt: ["$examinationInfo.status", 0] }
                     }
                 },
                 { $project: { 
@@ -94,7 +97,8 @@ const PaymentController = {
                         dateToF ? { createdAt: { $lte: dateToF } } : {},
                         (filters.statusF.length > 0 && filters.statusF != null) ? { 
                             status: { $in: filters.statusF }
-                        } : {}
+                        } : {},
+                        { examinationStatus: { $ne: 'cancelled' } }
                     ]
                 }},
                 { $count: "count" }
@@ -173,50 +177,6 @@ const PaymentController = {
             return res.status(400).json({ success: false, error: err });
         }
     },
-    getReceiptsById: async(req, res) => {
-        try{
-            var data = await Receipts.aggregate([
-                { $lookup: {
-                    from: "tw_customers",
-                    localField: "customerId",
-                    foreignField: "_id",
-                    as: "customerInfo"
-                }},
-                { $lookup: {
-                    from: "tw_examinations",
-                    localField: "examinationId",
-                    foreignField: "_id",
-                    as: "examinationInfo"
-                }},
-                {
-                    $addFields: {
-                        "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
-                        "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
-                        "customerBirthday": { $arrayElemAt: ["$customerInfo.birthday", 0] },
-                        "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
-                        "customerPhysicalId": { $arrayElemAt: ["$customerInfo.physicalId", 0] },
-                        "customerPhone": { $arrayElemAt: ["$customerInfo.phone", 0] },
-                        "diagnosisTreatment": { $arrayElemAt: ["$examinationInfo.diagnosisTreatment", 0] },
-                        "totalAmount": { $arrayElemAt: ["$examinationInfo.totalAmount", 0] },
-                    }
-                },
-                { $project: { 
-                    customerInfo: 0,
-                    examinationInfo: 0,
-                }},
-                { $match: { 
-                    $and: [
-                        { _id: mongoose.Types.ObjectId(req.params.id) },
-                    ]
-                }},
-                { $limit: 1 },
-            ]);
-            return res.status(200).json({ success: true, data: data });
-        }
-        catch(err){
-            return res.status(400).json({ success: false, error: err });
-        }
-    }
 };
 
 module.exports = PaymentController;

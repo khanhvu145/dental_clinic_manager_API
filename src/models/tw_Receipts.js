@@ -6,6 +6,7 @@ const uploadFile = require('../helpers/uploadFile');
 const getFileUpload = require('../helpers/getFileUpload');
 const tw_Customer = require('../models/tw_Customer');
 const CustomerLog = tw_Customer.CustomerLogModel;
+const Payment = require('../models/tw_Payment');
 
 const tw_Receipts = new Schema({
     code: { 
@@ -40,6 +41,9 @@ const tw_Receipts = new Schema({
     note: {
         type: String,
     },
+    status: {
+        type: String,
+    },
     createdAt: {
         type: Date,
     },
@@ -50,6 +54,12 @@ const tw_Receipts = new Schema({
         type: Date,
     },
     updatedBy: {
+        type: String,
+    },
+    cancelledAt: {
+        type: Date,
+    },
+    cancelledBy: {
         type: String,
     }
 });
@@ -141,10 +151,10 @@ tw_Receipts.statics.createReceipts = async function(data, files){
         }
 
         //#region Ghi log
-        var content = {
-            code: newData[0].code
-        }
-        await CustomerLog.CreateLog(newData[0].customerId, 'payment', newData[0]._id, content, newData[0].createdBy);
+        // var content = {
+        //     code: newData[0].code
+        // }
+        // await CustomerLog.CreateLog(newData[0].customerId, 'payment', newData[0]._id, content, newData[0].createdBy);
         //#endregion
 
         return { code: 1, error: '', data: newData[0] };
@@ -153,6 +163,62 @@ tw_Receipts.statics.createReceipts = async function(data, files){
         console.log(err);
         return { code: 0, error: err, data: {} };
     }
-}
+};
+//Hủy phiếu thu
+tw_Receipts.statics.cancelReceipts = async function(id, cancelReason, userName){
+    try{
+        const _this = this;
+        const receipts = await _this.findById(id);
+        if(receipts != null){
+            await _this.updateOne(
+                { _id: id }, 
+                {
+                    $set: { 
+                        status: 'cancelled',
+                        cancelReason: cancelReason || '',
+                        cancelledAt: Date.now(),
+                        cancelledBy: userName || ''
+                    }
+                }
+            ).then(async() => {
+                try{
+                    //#region Hoàn lại tiền cho thanh toán
+                    const payment = await Payment.findById(receipts.paymentId);
+                    if(payment != null){
+                        var paidAmount = parseFloat(payment.paidAmount) - parseFloat(receipts.amount);
+                        var remainAmount = parseFloat(payment.remainAmount) + parseFloat(receipts.amount);
+                        await _this.updateOne(
+                            { _id: payment._id }, 
+                            {
+                                $set: { 
+                                    paidAmount: parseFloat(paidAmount),
+                                    remainAmount: parseFloat(remainAmount),
+                                    updatedAt: Date.now(),
+                                    updatedBy: userName || ''
+                                }
+                            }
+                        );
+                    }
+                    var newPayment = await Payment.find({ _id: receipts.paymentId });
+                    return { code: 1, error: '', data: newPayment };
+                    //#endregion
+                }
+                catch (err){
+                    return { code: -3, error: err, data: {} };
+                }
+            })
+            .catch((err) => {
+                return { code: -2, error: err, data: {} };
+            });
+        }
+        else{
+            return { code: -1, error: 'Không có thông tin phiếu thu', data: {} };
+        }
+    }
+    catch(err){
+        console.log(err);
+        return { code: 0, error: err, data: {} };
+    }
+};
 
 module.exports = mongoose.model('tw_Receipts', tw_Receipts);

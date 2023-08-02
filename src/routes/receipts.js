@@ -3,6 +3,7 @@ const receiptsController = require('../controllers/ReceiptsController');
 const router = express.Router();
 
 router.get('/getReceiptsByPaymentId/:id/', receiptsController.getReceiptsByPaymentId);
+router.get('/getById/:id/', receiptsController.getById);
 router.post('/getByQuery', receiptsController.getByQuery);
 
 module.exports = router;

@@ -3,6 +3,8 @@ const multer = require('../middlewares/Multer');
 const customerController = require('../controllers/CustomerController');
 const router = express.Router();
 
+router.post('/cancelExamination', customerController.cancelExamination);
+router.post('/confirmExamination', customerController.confirmExamination);
 router.post('/removeDesignationFile', customerController.removeDesignationFile);
 router.post('/uploadDesignation', multer.any('fileList'), customerController.uploadDesignation);
 router.delete('/removeDesignation/:id/', customerController.removeDesignation);
