@@ -61,6 +61,9 @@ const tw_Receipts = new Schema({
     },
     cancelledBy: {
         type: String,
+    },
+    cancelReason: {
+        type: String,
     }
 });
 
@@ -97,6 +100,7 @@ tw_Receipts.statics.createReceipts = async function(data, files){
             methodFee: data.methodFee ? data.methodFee : '',
             attachFiles: data.attachFiles || [], 
             note: data.note ? data.note : '',
+            status: data.status,
             createdAt: Date.now(),
             createdBy: data.createdBy ? data.createdBy : ''
         }).save();
@@ -147,7 +151,7 @@ tw_Receipts.statics.createReceipts = async function(data, files){
         ]);
 
         if(newData == null || newData.length <= 0){
-            return { code: -1, error: 'Tạo phiếu thu không thành công', data: {} };
+            return { code: -1, error: 'Có lỗi xảy ra khi tạo phiếu thu', data: {} };
         }
 
         //#region Ghi log
@@ -169,7 +173,7 @@ tw_Receipts.statics.cancelReceipts = async function(id, cancelReason, userName){
     try{
         const _this = this;
         const receipts = await _this.findById(id);
-        if(receipts != null){
+        if(receipts != null && receipts.status != 'cancelled'){
             await _this.updateOne(
                 { _id: id }, 
                 {
@@ -187,20 +191,32 @@ tw_Receipts.statics.cancelReceipts = async function(id, cancelReason, userName){
                     if(payment != null){
                         var paidAmount = parseFloat(payment.paidAmount) - parseFloat(receipts.amount);
                         var remainAmount = parseFloat(payment.remainAmount) + parseFloat(receipts.amount);
-                        await _this.updateOne(
+                        var status = payment.status;
+                        if(remainAmount <= 0){
+                            status = 'paid';
+                        }
+                        else{
+                            if(remainAmount >= payment.amount){
+                                status = 'unpaid';
+                            }
+                            else{
+                                status = 'partialPaid';
+                            }
+                        }
+                        await Payment.updateOne(
                             { _id: payment._id }, 
                             {
                                 $set: { 
                                     paidAmount: parseFloat(paidAmount),
                                     remainAmount: parseFloat(remainAmount),
+                                    status: status,
                                     updatedAt: Date.now(),
                                     updatedBy: userName || ''
                                 }
                             }
                         );
                     }
-                    var newPayment = await Payment.find({ _id: receipts.paymentId });
-                    return { code: 1, error: '', data: newPayment };
+                    return { code: 1, error: '', data: {} };
                     //#endregion
                 }
                 catch (err){

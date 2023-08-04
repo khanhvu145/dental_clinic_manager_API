@@ -61,6 +61,7 @@ const ReceiptsController = {
                         },
                         dateFromF ? { createdAt: { $gte: dateFromF } } : {},
                         dateToF ? { createdAt: { $lte: dateToF } } : {},
+                        filters.statusF != 'all' ? { status: filters.statusF } : {},
                     ]
                 }},
                 { $sort: { createdAt: sorts }},
@@ -191,6 +192,7 @@ const ReceiptsController = {
                 { $match: { 
                     $and: [
                         { paymentId: mongoose.Types.ObjectId(req.params.id) },
+                        { status: { $ne: 'cancelled' } }
                     ]
                 }},
                 { $sort: { createdAt: -1 }},
@@ -202,6 +204,32 @@ const ReceiptsController = {
             return res.status(400).json({ success: false, error: err });
         }
     },
+    cancel: async (req, res) => {
+        try {
+            var formData = req.body;
+            //#region Kiểm tra thông tin
+            const exists = await Receipts.findById(formData.id);
+            if(exists == null) {
+                return res.status(200).json({ success: false, error: "Không có thông tin phiếu thu" });
+            }
+            else{
+                if(exists.status == 'cancelled'){
+                    return res.status(200).json({ success: false, error: "Phiếu thu đã được hủy. Không thể hủy." });
+                }
+            }
+            //#endregion
+            //#region Xử lý
+            var result = await Receipts.cancelReceipts(formData.id, formData.cancelReason, formData.cancelledBy);
+            if(result && result.code < 0){
+                return res.status(200).json({ success: false, error: result.error });
+            }
+            return res.status(200).json({ success: true, message: 'Hủy phiếu thu thành công', data: {} });
+            //#endregion
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    }
 };
 
 module.exports = ReceiptsController;

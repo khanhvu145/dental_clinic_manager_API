@@ -948,7 +948,7 @@ const CustomerController = {
                     const payment = await Payment.findOne({ examinationId: exists._id });
                     if(payment != null) {
                         //Lấy danh sách phiếu thu
-                        var receiptsList = await Receipts.find({ paymentId: payment._id });
+                        var receiptsList = await Receipts.find({ paymentId: payment._id, status: 'paid' });
                         if(receiptsList != null && receiptsList.length > 0) {
                             for(let i = 0; i < receiptsList.length; i++) {
                                 var result = await Receipts.cancelReceipts(receiptsList[i]._id, `Hủy do phiếu khám ${exists.code} được hủy.`, formData.cancelledBy);

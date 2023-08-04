@@ -161,6 +161,7 @@ const PaymentController = {
                 amount: formData.paidAmount,
                 methodFee: formData.methodFee,
                 note: formData.note,
+                status: 'paid',
                 createdAt: Date.now(),
                 createdBy: formData.updatedBy
             };
