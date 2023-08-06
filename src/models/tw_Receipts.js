@@ -215,8 +215,34 @@ tw_Receipts.statics.cancelReceipts = async function(id, cancelReason, userName){
                                 }
                             }
                         );
+
+                        //#region Log
+                        var newData = await _this.findById(receipts._id);
+                        var log = [];
+                        var isUpdate = false;
+                        if(newData != null) {
+                            isUpdate = true;
+                            var item = {
+                                column: 'Hủy thanh toán',
+                                oldvalue: {},
+                                newvalue: {
+                                    id: newData._id,
+                                    code: newData.code,
+                                    cancelReason: newData.cancelReason
+                                }
+                            };
+                            log.push(item);
+                        }
+                        if (isUpdate)
+                        {
+                            await CustomerLog.CreateLog(newData.customerId, 'payment', log, 'cancel', userName);
+                        }
+                        //#endregion
+                        return { code: 1, error: '', data: {} };
                     }
-                    return { code: 1, error: '', data: {} };
+                    else{
+                        return { code: -4, error: 'Không có thông tin thanh toán', data: {} };
+                    }
                     //#endregion
                 }
                 catch (err){

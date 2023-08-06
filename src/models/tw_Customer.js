@@ -42,6 +42,9 @@ const tw_Customer = new Schema({
             provinceId: { type: Schema.Types.Decimal128, default: 0 },
         }
     },
+    fullAddress: { 
+        type: String,
+    },
     img: {
         type: String,
     },
@@ -88,12 +91,11 @@ const tw_Customer_Log = new Schema({
         type: String,
         required: true,
     },
-    targetId: { 
-        type: Schema.Types.ObjectId, 
-        required: true,
+    note: {
+        type: Array,
     },
-    content: { 
-        type: Object, 
+    action: {
+        type: String,
     },
     createdAt: {
         type: Date,
@@ -103,19 +105,24 @@ const tw_Customer_Log = new Schema({
     }
 });
 
-tw_Customer_Log.statics.CreateLog = async function (customerId, type, targetId, content, currentUser){
+tw_Customer_Log.statics.CreateLog = async function (customerId, type, note, action, currentUser){
+    console.log('step 8')
     var log = {};
     log.customerId = customerId;
     log.type = type;
-    log.targetId = targetId;
-    log.content = content;
+    log.note = note;
+    log.action = action;
     log.createdBy = currentUser ? currentUser : 'System';
     log.createdAt = Date.now();
+    console.log('step 9')
     await this.create(log, function(err, result){
+        console.log('step 10')
         if(err) {
+            console.log('step 11', err)
             return false;
         }
         else{
+            console.log('step 12')
             return true;
         }
     });

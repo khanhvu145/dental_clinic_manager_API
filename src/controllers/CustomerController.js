@@ -81,7 +81,8 @@ const CustomerController = {
                     customerGroup: formData.customerGroup ? formData.customerGroup : '',
                     source: formData.source ? formData.source : '',
                     createdAt: Date.now(),
-                    createdBy: formData.createdBy ? formData.createdBy : ''
+                    createdBy: formData.createdBy ? formData.createdBy : '',
+                    fullAddress: formData.fullAddress ? formData.fullAddress : ''
                 }).save();
                 await Customer.updateOne(
                     { _id: newData._id }, 
@@ -94,89 +95,93 @@ const CustomerController = {
                 var data = await Customer.findById(newData._id);
 
                 //#region Log
-                // var log = [];
-                // var isUpdate = false;
-                // if(!IsNullOrEmpty(data.name)) {
-                //     isUpdate = true;
-                //     var item = {
-                //         column: 'Họ và tên',
-                //         oldvalue: '',
-                //         newvalue: data.name
-                //     };
-                //     log.push(item);
-                // }
-                // if(!IsNullOrEmpty(data.physicalId)) {
-                //     isUpdate = true;
-                //     var item = {
-                //         column: 'CMND/CCCD',
-                //         oldvalue: '',
-                //         newvalue: data.physicalId
-                //     };
-                //     log.push(item);
-                // }
-                // if(data.dateOfIssue != null) {
-                //     isUpdate = true;
-                //     var item = {
-                //         column: 'Ngày cấp',
-                //         oldvalue: '',
-                //         newvalue: moment(data.dateOfIssue).format('DD/MM/YYYY')
-                //     };
-                //     log.push(item);
-                // }
-                // if(!IsNullOrEmpty(data.placeOfIssue)) {
-                //     isUpdate = true;
-                //     var item = {
-                //         column: 'Nơi cấp',
-                //         oldvalue: '',
-                //         newvalue: data.placeOfIssue
-                //     };
-                //     log.push(item);
-                // }
-                // if(!IsNullOrEmpty(data.phone)) {
-                //     isUpdate = true;
-                //     var item = {
-                //         column: 'Số điện thoại',
-                //         oldvalue: '',
-                //         newvalue: data.phone
-                //     };
-                //     log.push(item);
-                // }
-                // if(!IsNullOrEmpty(data.email)) {
-                //     isUpdate = true;
-                //     var item = {
-                //         column: 'Email',
-                //         oldvalue: '',
-                //         newvalue: data.email
-                //     };
-                //     log.push(item);
-                // }
-                // if(data.birthday != null) {
-                //     isUpdate = true;
-                //     var item = {
-                //         column: 'Ngày sinh',
-                //         oldvalue: '',
-                //         newvalue: moment(data.birthday).format('DD/MM/YYYY')
-                //     };
-                //     log.push(item);
-                // }
-                // if(!IsNullOrEmpty(data.gender)) {
-                //     isUpdate = true;
-                //     var item = {
-                //         column: 'Giới tính',
-                //         oldvalue: '',
-                //         newvalue: data.gender == 'male' ? 'Nam' : data.gender == 'female' ? 'Nữ' : 'Khác'
-                //     };
-                //     log.push(item);
-                // }
-                // if(!IsNullOrEmpty(data.address.building)) {
-                //     isUpdate = true;
-                //     var item = {
-                //         column: 'Địa chỉ',
-                //         oldvalue: '',
-                //         newvalue: data.address.building
-                //     };
-                //     log.push(item);
-                // }
+                var log = [];
+                var isUpdate = false;
+                if(!IsNullOrEmpty(data.name)) {
+                    isUpdate = true;
+                    var item = {
+                        column: 'Họ và tên',
+                        oldvalue: '',
+                        newvalue: data.name
+                    };
+                    log.push(item);
+                }
+                if(!IsNullOrEmpty(data.physicalId)) {
+                    isUpdate = true;
+                    var item = {
+                        column: 'CMND/CCCD',
+                        oldvalue: '',
+                        newvalue: data.physicalId
+                    };
+                    log.push(item);
+                }
+                if(data.dateOfIssue != null) {
+                    isUpdate = true;
+                    var item = {
+                        column: 'Ngày cấp',
+                        oldvalue: '',
+                        newvalue: moment(data.dateOfIssue).format('DD/MM/YYYY')
+                    };
+                    log.push(item);
+                }
+                if(!IsNullOrEmpty(data.placeOfIssue)) {
+                    isUpdate = true;
+                    var item = {
+                        column: 'Nơi cấp',
+                        oldvalue: '',
+                        newvalue: data.placeOfIssue
+                    };
+                    log.push(item);
+                }
+                if(!IsNullOrEmpty(data.phone)) {
+                    isUpdate = true;
+                    var item = {
+                        column: 'Số điện thoại',
+                        oldvalue: '',
+                        newvalue: data.phone
+                    };
+                    log.push(item);
+                }
+                if(!IsNullOrEmpty(data.email)) {
+                    isUpdate = true;
+                    var item = {
+                        column: 'Email',
+                        oldvalue: '',
+                        newvalue: data.email
+                    };
+                    log.push(item);
+                }
+                if(data.birthday != null) {
+                    isUpdate = true;
+                    var item = {
+                        column: 'Ngày sinh',
+                        oldvalue: '',
+                        newvalue: moment(data.birthday).format('DD/MM/YYYY')
+                    };
+                    log.push(item);
+                }
+                if(!IsNullOrEmpty(data.gender)) {
+                    isUpdate = true;
+                    var item = {
+                        column: 'Giới tính',
+                        oldvalue: '',
+                        newvalue: data.gender == 'male' ? 'Nam' : data.gender == 'female' ? 'Nữ' : 'Khác'
+                    };
+                    log.push(item);
+                }
+                if(!IsNullOrEmpty(data.fullAddress)) {
+                    isUpdate = true;
+                    var item = {
+                        column: 'Địa chỉ',
+                        oldvalue: '',
+                        newvalue: formData.fullAddress
+                    };
+                    log.push(item);
+                }
+                if (isUpdate)
+                {
+                    await CustomerLog.CreateLog(data._id, 'profile', log, 'create', formData.createdBy);
+                }
                 //#endregion
                 return res.status(200).json({ success: true, message: 'Tạo thành công', data: data });
             }
@@ -295,11 +300,103 @@ const CustomerController = {
                         customerGroup: formData.customerGroup ? formData.customerGroup : '',
                         source: formData.source ? formData.source : '',
                         updatedAt: Date.now(),
-                        updatedBy: formData.updatedBy ? formData.updatedBy : ''
+                        updatedBy: formData.updatedBy ? formData.updatedBy : '',
+                        fullAddress: formData.fullAddress ? formData.fullAddress : ''
                     }
                 }
             );
             var data = await Customer.findById(formData._id);
+
+            //#region Log
+            var log = [];
+            var isUpdate = false;
+            if(exist.name != data.name) {
+                isUpdate = true;
+                var item = {
+                    column: 'Họ và tên',
+                    oldvalue: exist.name,
+                    newvalue: data.name
+                };
+                log.push(item);
+            }
+            if(exist.physicalId != data.physicalId) {
+                isUpdate = true;
+                var item = {
+                    column: 'CMND/CCCD',
+                    oldvalue: exist.physicalId,
+                    newvalue: data.physicalId
+                };
+                log.push(item);
+            }
+            if(moment(exist.dateOfIssue).format('DD/MM/YYYY') != moment(data.dateOfIssue).format('DD/MM/YYYY')) {
+                isUpdate = true;
+                var item = {
+                    column: 'Ngày cấp',
+                    oldvalue: moment(exist.dateOfIssue).format('DD/MM/YYYY'),
+                    newvalue: moment(data.dateOfIssue).format('DD/MM/YYYY')
+                };
+                log.push(item);
+            }
+            if(exist.placeOfIssue != data.placeOfIssue) {
+                isUpdate = true;
+                var item = {
+                    column: 'Nơi cấp',
+                    oldvalue: exist.placeOfIssue,
+                    newvalue: data.placeOfIssue
+                };
+                log.push(item);
+            }
+            if(exist.phone != data.phone) {
+                isUpdate = true;
+                var item = {
+                    column: 'Số điện thoại',
+                    oldvalue: exist.phone,
+                    newvalue: data.phone
+                };
+                log.push(item);
+            }
+            if(exist.email != data.email) {
+                isUpdate = true;
+                var item = {
+                    column: 'Email',
+                    oldvalue: exist.email,
+                    newvalue: data.email
+                };
+                log.push(item);
+            }
+            if(moment(exist.birthday).format('DD/MM/YYYY') != moment(data.birthday).format('DD/MM/YYYY')) {
+                isUpdate = true;
+                var item = {
+                    column: 'Ngày sinh',
+                    oldvalue: moment(exist.birthday).format('DD/MM/YYYY'),
+                    newvalue: moment(data.birthday).format('DD/MM/YYYY')
+                };
+                log.push(item);
+            }
+            if(exist.gender != data.gender) {
+                isUpdate = true;
+                var item = {
+                    column: 'Giới tính',
+                    oldvalue: exist.gender == 'male' ? 'Nam' : exist.gender == 'female' ? 'Nữ' : 'Khác',
+                    newvalue: data.gender == 'male' ? 'Nam' : data.gender == 'female' ? 'Nữ' : 'Khác'
+                };
+                log.push(item);
+            }
+            if(exist.fullAddress != data.fullAddress) {
+                isUpdate = true;
+                var item = {
+                    column: 'Địa chỉ',
+                    oldvalue: exist.fullAddress,
+                    newvalue: formData.fullAddress
+                };
+                log.push(item);
+            }
+            if (isUpdate)
+            {
+                await CustomerLog.CreateLog(data._id, 'profile', log, 'update', formData.updatedBy);
+            }
+            //#endregion
+
             return res.status(200).json({ success: true, message: 'Cập nhật thành công', data: data });
         }
         catch(err){
@@ -360,13 +457,22 @@ const CustomerController = {
             var data = await Examination.findById(newData._id);
             //#endregion
 
-            //#region Ghi log
-            // if(data){
-            //     var content = {
-            //         code: data.code,
-            //     };
-            //     await CustomerLog.CreateLog(data.customerId, 'examination', data._id, content, formData.createdBy);
-            // }
+            //#region Log
+            var log = [];
+            var isUpdate = false;
+            if(data != null) {
+                isUpdate = true;
+                var item = {
+                    column: 'Khám và điều trị',
+                    oldvalue: {},
+                    newvalue: data
+                };
+                log.push(item);
+            }
+            if (isUpdate)
+            {
+                await CustomerLog.CreateLog(data.customerId, 'examination', log, 'create', formData.createdBy);
+            }
             //#endregion
 
             return res.status(200).json({ success: true, message: 'Tạo phiếu khám thành công', data: data });
@@ -429,6 +535,24 @@ const CustomerController = {
                 }
             );
             var data = await Examination.findById(formData._id);
+            //#endregion
+
+            //#region Log
+            var log = [];
+            var isUpdate = false;
+            if(data != null) {
+                isUpdate = true;
+                var item = {
+                    column: 'Khám và điều trị',
+                    oldvalue: exist,
+                    newvalue: data
+                };
+                log.push(item);
+            }
+            if (isUpdate)
+            {
+                await CustomerLog.CreateLog(data.customerId, 'examination', log, 'update', formData.updatedBy);
+            }
             //#endregion
 
             return res.status(200).json({ success: true, message: 'Cập nhật phiếu khám thành công', data: data });
@@ -561,53 +685,6 @@ const CustomerController = {
                     (filters.typeF && filters.typeF != 'all') ? { type: filters.typeF } : {}
                 ]
             }).sort(sorts).limit(pages.size).skip(pages.from);
-            // var newData = [];
-            // if(data && data.length > 0){
-            //     for(let i = 0; i < data.length; i++){
-            //         if(data[i].type == 'examination'){
-            //             var examinationData = await Examination.findById(data[i].targetId);
-            //             if(examinationData){
-            //                 data[i].code = examinationData.code;
-            //                 // console.log(data[i].code)
-            //                 newData.push(data[i]);
-            //                 console.log(newData)
-            //             }
-            //         }
-            //         else if(data[i].type == 'payment'){
-            //             var paymentData = await Receipts.findById(data[i].targetId);
-            //             if(paymentData){
-            //                 data[i].code = paymentData.code;
-            //                 newData.push(data[i]);
-            //                 console.log(newData)
-            //             }
-            //         }
-            //     }
-            //     // newData = await data.map(async(item) => {
-            //     //     if(item.type == 'examination'){
-            //     //         var examinationData = await Examination.findById(mongoose.Types.ObjectId(item.targetId));
-            //     //         if(examinationData){
-            //     //             return {
-            //     //                 ...item,
-            //     //                 code: examinationData.code
-            //     //             }
-            //     //         }
-            //     //     }
-            //     //     else if(item.type == 'payment'){
-            //     //         var paymentData = await Receipts.findById(mongoose.Types.ObjectId(item.targetId));
-            //     //         if(paymentData){
-            //     //             return {
-            //     //                 ...item,
-            //     //                 code: paymentData.code
-            //     //             }
-            //     //         }
-            //     //     }
-            //     //     else{
-            //     //         return {
-            //     //             ...item
-            //     //         }
-            //     //     }
-            //     // });
-            // }
 
             var total = await CustomerLog.find({
                 $and: [
@@ -692,7 +769,7 @@ const CustomerController = {
                     return res.status(200).json({ success: false, error: "Trạng thái phiếu khám hiện tại không thể chỉnh sửa" });
                 }
             }
-            //Xử lý hủy phiếu khám
+            //Xử lý hủy chỉ định
             Designation.delete({ _id: mongoose.Types.ObjectId(exist._id)})
                 .then(async() => {
                     try{
@@ -883,8 +960,8 @@ const CustomerController = {
                 try{
                     //#region Tạo thanh toán
                     var data = await Examination.findById(exists._id);
-                    //Chuẩn hóa dữ liệu
                     if(data){
+                        //Chuẩn hóa dữ liệu
                         const paymentData = {
                             examinationId: exists._id,
                             customerId: exists.customerId,
@@ -901,8 +978,25 @@ const CustomerController = {
                             return res.status(200).json({ success: false, error: payment.error });
                         }
                     }
-                    return res.status(200).json({ success: true, message: 'Xác nhận điều trị thành công', data: data });
                     //#endregion
+                    //#region Log
+                    var log = [];
+                    var isUpdate = false;
+                    if(data != null) {
+                        isUpdate = true;
+                        var item = {
+                            column: 'Xác nhận điều trị',
+                            oldvalue: {},
+                            newvalue: data
+                        };
+                        log.push(item);
+                    }
+                    if (isUpdate)
+                    {
+                        await CustomerLog.CreateLog(data.customerId, 'examination', log, 'confirm', formData.approvedBy);
+                    }
+                    //#endregion
+                    return res.status(200).json({ success: true, message: 'Xác nhận điều trị thành công', data: data });
                 }
                 catch (e){
                     return res.status(200).json({ success: false, error: e });
@@ -959,6 +1053,26 @@ const CustomerController = {
                         }
                     }
                     //#endregion
+
+                    //#region Log
+                    var data = await Examination.findById(exists._id);
+                    var log = [];
+                    var isUpdate = false;
+                    if(data != null) {
+                        isUpdate = true;
+                        var item = {
+                            column: 'Hủy phiếu khám',
+                            oldvalue: {},
+                            newvalue: data
+                        };
+                        log.push(item);
+                    }
+                    if (isUpdate)
+                    {
+                        await CustomerLog.CreateLog(data.customerId, 'examination', log, 'cancel', formData.cancelledBy);
+                    }
+                    //#endregion
+
                     return res.status(200).json({ success: true, message: 'Hủy phiếu khám thành công', data: {} });
                 }
                 catch (e){

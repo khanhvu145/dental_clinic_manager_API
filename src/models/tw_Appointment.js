@@ -321,12 +321,12 @@ tw_Appointment.statics.booking = async function(formData){
         //#endregion
 
         //#region Log khách hàng
-        if(data){
-            var content = {
-                code: data.code,
-            };
-            await CustomerLog.CreateLog(data.customerId, 'booking', data._id, content, formData.createdBy);
-        }
+        // if(data){
+        //     var content = {
+        //         code: data.code,
+        //     };
+        //     await CustomerLog.CreateLog(data.customerId, 'booking', data._id, content, formData.createdBy);
+        // }
         //#endregion
 
         return { code: 1, data: data, error: '' };
