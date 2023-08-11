@@ -33,11 +33,11 @@ const tw_Appointment = new Schema({
         required: true,
         ref: "tw_customers"
     },
-    serviceGroupId: { 
-        type: Schema.Types.ObjectId, 
-        required: true,
-        ref: "tw_ServiceGroup"
-    },
+    // serviceGroupId: { 
+    //     type: Schema.Types.ObjectId, 
+    //     required: true,
+    //     ref: "tw_ServiceGroup"
+    // },
     date: {
         type: Date,
         required: true,
@@ -100,6 +100,17 @@ const tw_Appointment = new Schema({
     timeTo: {
         type: Date,
     },
+    content: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        ref: "tw_GeneralConfig"
+    },
+    transferReason: {
+        type: String,
+    },
+    refId: {
+        type: Schema.Types.ObjectId
+    },
 });
 
 tw_Appointment.plugin(mongooseDelete, { 
@@ -116,7 +127,7 @@ tw_Appointment.statics.booking = async function(formData){
         const newAppointment = await new _this({
             dentistId: formData.dentistId ? formData.dentistId : '', 
             customerId: formData.customerId ? formData.customerId : '', 
-            serviceGroupId: formData.serviceGroupId ? formData.serviceGroupId : '',
+            // serviceGroupId: formData.serviceGroupId ? formData.serviceGroupId : '',
             date: formData.date ? formData.date : null,
             time: formData.time ? formData.time : '',
             duration: formData.duration ? parseFloat(formData.duration) : parseFloat(0),
@@ -129,6 +140,7 @@ tw_Appointment.statics.booking = async function(formData){
             isActive: formData.isActive ? formData.isActive : true,
             createdAt: Date.now(),
             createdBy: formData.createdBy ? formData.createdBy : '',
+            content: formData.content ? formData.content : '',
             // expireTime: expireTime ? expireTime : null
         }).save();
 
@@ -142,198 +154,203 @@ tw_Appointment.statics.booking = async function(formData){
         );
         var data = await _this.findById(newAppointment._id);
 
-        /**Xử lý hủy hẹn tự động */
-        var config = await AppointmentConfig.find({});
-        if(config != null && config.length > 0) {
-            var configInfo = config[0]; 
-            if(configInfo.other.autoCancelApply){
-                var autoCancelDuration = configInfo.other.autoCancelDuration;
-                var expireTime = moment(data.timeFrom)._d;
-                if(configInfo.other.autoCancelType == 'minutes'){
-                    expireTime = moment(data.timeFrom).add(autoCancelDuration, 'm')._d;
-                }
-                else if (configInfo.other.autoCancelType == 'hours'){
-                    expireTime = moment(data.timeFrom).add(autoCancelDuration, 'h')._d;
-                }
-
-                if(expireTime != null){
-                    const dateCron = convertDateToCron(expireTime);
-                    var job = await new CronJob(
-                        dateCron,
-                        async function() {
-                            await _this.cancelBooking(data._id, 'Hủy hẹn tự động do qua thời gian đặt hẹn', formData.createdBy);
-                        },
-                        null,
-                        true,
-                        'Asia/Ho_Chi_Minh'
-                    );
-                    await job.start();
-                }
-            }
-        }
-
-        /**Xử lý nhắc hẹn tự động */
-        if(config != null && config.length > 0){
-            var configInfo = config[0]; 
-            if(configInfo.autoRemind.apply){
-                if(configInfo.autoRemind.repeat){
-                    var autoRemindDuration = configInfo.autoRemind.duration;
-                    var autoRemindTime = configInfo.autoRemind.time;
-                    for(var i = autoRemindDuration; i >= 0; i--){
-                        var timeAutoRemind = await _this.setTimeFrom(data.date, autoRemindTime);
-                        var expireTime = moment(timeAutoRemind).subtract(i, 'd')._d;
-                        // var expireTime = moment(Date.now()).add(i, 'm')._d;
-                        if(expireTime != null){
-                            var dateCronAutoRemind = convertDateToCron(expireTime);
-                            var job3 = await new CronJob(
-                                dateCronAutoRemind,
-                                async function() {
-                                    if(configInfo.autoRemind.type == 'type2' || configInfo.autoRemind.type == 'type3'){
-                                        await _this.sendMailAutoRemindBooking(data._id);
-                                    }
-                                    
-                                    if(configInfo.autoRemind.type == 'type1' || configInfo.autoRemind.type == 'type3'){
-                                        
-                                    }
-                                },
-                                null,
-                                true,
-                                'Asia/Ho_Chi_Minh'
-                            );
-                            await job3.start(); 
-                        }
+        if(data){
+            /**Xử lý hủy hẹn tự động */
+            var config = await AppointmentConfig.find({});
+            if(config != null && config.length > 0) {
+                var configInfo = config[0]; 
+                if(configInfo.other.autoCancelApply){
+                    var autoCancelDuration = configInfo.other.autoCancelDuration;
+                    var expireTime = moment(data.timeFrom)._d;
+                    if(configInfo.other.autoCancelType == 'minutes'){
+                        expireTime = moment(data.timeFrom).add(autoCancelDuration, 'm')._d;
                     }
-                }
-                else{
-                    var autoRemindDuration = configInfo.autoRemind.duration;
-                    var autoRemindTime = configInfo.autoRemind.time;
-                    var timeAutoRemind = await _this.setTimeFrom(data.date, autoRemindTime);
-                    var expireTime = moment(timeAutoRemind).subtract(autoRemindDuration, 'd')._d;
-                    // var expireTime = moment(Date.now()).add(1, 'm')._d;
+                    else if (configInfo.other.autoCancelType == 'hours'){
+                        expireTime = moment(data.timeFrom).add(autoCancelDuration, 'h')._d;
+                    }
+    
                     if(expireTime != null){
-                        var dateCronAutoRemind = convertDateToCron(expireTime);
-                        var job2 = await new CronJob(
-                            dateCronAutoRemind,
+                        const dateCron = convertDateToCron(expireTime);
+                        var job = await new CronJob(
+                            dateCron,
                             async function() {
-                                if(configInfo.autoRemind.type == 'type2' || configInfo.autoRemind.type == 'type3'){
-                                    await _this.sendMailAutoRemindBooking(data._id);
-                                }
-
-                                // await sendSMS(['84703260457'], 'SMS nhắc hẹn tự động', 2, '');
-                                
-                                // if(configInfo.autoRemind.type == 'type1' || configInfo.autoRemind.type == 'type3'){
-                                //     await sendSMS('84703260457', 'SMS nhắc hẹn tự động');
-                                // }
+                                await _this.cancelBooking(data._id, 'Hủy hẹn tự động do qua thời gian đặt hẹn', formData.createdBy);
                             },
                             null,
                             true,
                             'Asia/Ho_Chi_Minh'
                         );
-                        await job2.start();
+                        await job.start();
                     }
                 }
             }
+    
+            /**Xử lý nhắc hẹn tự động */
+            if(config != null && config.length > 0){
+                var configInfo = config[0]; 
+                if(configInfo.autoRemind.apply){
+                    if(configInfo.autoRemind.repeat){
+                        var autoRemindDuration = configInfo.autoRemind.duration;
+                        var autoRemindTime = configInfo.autoRemind.time;
+                        for(var i = autoRemindDuration; i >= 0; i--){
+                            var timeAutoRemind = await _this.setTimeFrom(data.date, autoRemindTime);
+                            var expireTime = moment(timeAutoRemind).subtract(i, 'd')._d;
+                            // var expireTime = moment(Date.now()).add(i, 'm')._d;
+                            if(expireTime != null){
+                                var dateCronAutoRemind = convertDateToCron(expireTime);
+                                var job3 = await new CronJob(
+                                    dateCronAutoRemind,
+                                    async function() {
+                                        if(configInfo.autoRemind.type == 'type2' || configInfo.autoRemind.type == 'type3'){
+                                            await _this.sendMailAutoRemindBooking(data._id);
+                                        }
+                                        
+                                        if(configInfo.autoRemind.type == 'type1' || configInfo.autoRemind.type == 'type3'){
+                                            
+                                        }
+                                    },
+                                    null,
+                                    true,
+                                    'Asia/Ho_Chi_Minh'
+                                );
+                                await job3.start(); 
+                            }
+                        }
+                    }
+                    else{
+                        var autoRemindDuration = configInfo.autoRemind.duration;
+                        var autoRemindTime = configInfo.autoRemind.time;
+                        var timeAutoRemind = await _this.setTimeFrom(data.date, autoRemindTime);
+                        var expireTime = moment(timeAutoRemind).subtract(autoRemindDuration, 'd')._d;
+                        // var expireTime = moment(Date.now()).add(1, 'm')._d;
+                        if(expireTime != null){
+                            var dateCronAutoRemind = convertDateToCron(expireTime);
+                            var job2 = await new CronJob(
+                                dateCronAutoRemind,
+                                async function() {
+                                    if(configInfo.autoRemind.type == 'type2' || configInfo.autoRemind.type == 'type3'){
+                                        await _this.sendMailAutoRemindBooking(data._id);
+                                    }
+    
+                                    // await sendSMS(['84703260457'], 'SMS nhắc hẹn tự động', 2, '');
+                                    
+                                    // if(configInfo.autoRemind.type == 'type1' || configInfo.autoRemind.type == 'type3'){
+                                    //     await sendSMS('84703260457', 'SMS nhắc hẹn tự động');
+                                    // }
+                                },
+                                null,
+                                true,
+                                'Asia/Ho_Chi_Minh'
+                            );
+                            await job2.start();
+                        }
+                    }
+                }
+            }
+            
+            //#region Log
+            var log = [];
+            var isUpdate = false;
+            if(isObjectId(data.dentistId)){
+                const UserData = await User.findById(data.dentistId);
+                isUpdate = true;
+                var item = {
+                    column: 'Nha sĩ phụ trách',
+                    oldvalue: '',
+                    newvalue: UserData.name || ''
+                };
+                log.push(item);
+            }
+            if(isObjectId(data.customerId)){
+                const CustomerData = await Customer.findById(data.customerId);
+                isUpdate = true;
+                var item = {
+                    column: 'Khách hàng',
+                    oldvalue: '',
+                    newvalue: CustomerData.name || ''
+                };
+                log.push(item);
+            }
+            if(isObjectId(data.content)) {
+                const GeneralConfigData = await GeneralConfig.findById(data.content);
+                isUpdate = true;
+                var item = {
+                    column: 'Nội dung',
+                    oldvalue: '',
+                    newvalue: GeneralConfigData.value || ''
+                };
+                log.push(item);
+            }
+            if(data.date != null) {
+                isUpdate = true;
+                var item = {
+                    column: 'Ngày hẹn',
+                    oldvalue: '',
+                    newvalue: moment(data.date).format('DD/MM/YYYY')
+                };
+                log.push(item);
+            }
+            if(!IsNullOrEmpty(data.time)) {
+                isUpdate = true;
+                var item = {
+                    column: 'Giờ hẹn',
+                    oldvalue: '',
+                    newvalue: data.time
+                };
+                log.push(item);
+            }
+            if(data.duration > 0) {
+                isUpdate = true;
+                var item = {
+                    column: 'Khoảng thời gian',
+                    oldvalue: '',
+                    newvalue: `${data.duration.toString()} ${(data.durationType == 'minutes' ? 'phút' : 'giờ')}`
+                };
+                log.push(item);
+            }
+            if(isObjectId(data.type)) {
+                const GeneralConfigData = await GeneralConfig.findById(data.type);
+                isUpdate = true;
+                var item = {
+                    column: 'Loại lịch hẹn',
+                    oldvalue: '',
+                    newvalue: GeneralConfigData.value || ''
+                };
+                log.push(item);
+            }
+            if(!IsNullOrEmpty(data.note)) {
+                isUpdate = true;
+                var item = {
+                    column: 'Ghi chú',
+                    oldvalue: '',
+                    newvalue: data.note
+                };
+                log.push(item);
+            }
+            if (isUpdate)
+            {
+                await AppointmentLogModel.CreateLog(data._id, 'create', log, formData.createdBy);
+            }
+            //#endregion
+    
+            //#region Log khách hàng
+            // if(data){
+            //     var content = {
+            //         code: data.code,
+            //     };
+            //     await CustomerLog.CreateLog(data.customerId, 'booking', data._id, content, formData.createdBy);
+            // }
+            //#endregion
+    
+            return { code: 1, data: data, error: '' };
         }
-
-        //#region Log
-        var log = [];
-        var isUpdate = false;
-        if(isObjectId(data.dentistId)){
-            const UserData = await User.findById(data.dentistId);
-            isUpdate = true;
-            var item = {
-                column: 'Nha sĩ phụ trách',
-                oldvalue: '',
-                newvalue: UserData.name || ''
-            };
-            log.push(item);
+        else{
+            return { code: -1, data: {}, error: 'Tạo booking không thành công' };
         }
-        if(isObjectId(data.customerId)){
-            const CustomerData = await Customer.findById(data.customerId);
-            isUpdate = true;
-            var item = {
-                column: 'Khách hàng',
-                oldvalue: '',
-                newvalue: CustomerData.name || ''
-            };
-            log.push(item);
-        }
-        if(isObjectId(data.serviceGroupId)) {
-            const ServiceGroupData = await ServiceGroup.findById(data.serviceGroupId);
-            isUpdate = true;
-            var item = {
-                column: 'Loại dịch vụ',
-                oldvalue: '',
-                newvalue: ServiceGroupData.name
-            };
-            log.push(item);
-        }
-        if(data.date != null) {
-            isUpdate = true;
-            var item = {
-                column: 'Ngày hẹn',
-                oldvalue: '',
-                newvalue: moment(data.date).format('DD/MM/YYYY')
-            };
-            log.push(item);
-        }
-        if(!IsNullOrEmpty(data.time)) {
-            isUpdate = true;
-            var item = {
-                column: 'Giờ hẹn',
-                oldvalue: '',
-                newvalue: data.time
-            };
-            log.push(item);
-        }
-        if(data.duration > 0) {
-            isUpdate = true;
-            var item = {
-                column: 'Khoảng thời gian',
-                oldvalue: '',
-                newvalue: `${data.duration.toString()} ${(data.durationType == 'minutes' ? 'phút' : 'giờ')}`
-            };
-            log.push(item);
-        }
-        if(isObjectId(data.type)) {
-            const GeneralConfigData = await GeneralConfig.findById(data.type);
-            isUpdate = true;
-            var item = {
-                column: 'Loại lịch hẹn',
-                oldvalue: '',
-                newvalue: GeneralConfigData.value || ''
-            };
-            log.push(item);
-        }
-        if(!IsNullOrEmpty(data.note)) {
-            isUpdate = true;
-            var item = {
-                column: 'Ghi chú',
-                oldvalue: '',
-                newvalue: data.note
-            };
-            log.push(item);
-        }
-        if (isUpdate)
-        {
-            await AppointmentLogModel.CreateLog(data._id, 'create', log, formData.createdBy);
-        }
-        //#endregion
-
-        //#region Log khách hàng
-        // if(data){
-        //     var content = {
-        //         code: data.code,
-        //     };
-        //     await CustomerLog.CreateLog(data.customerId, 'booking', data._id, content, formData.createdBy);
-        // }
-        //#endregion
-
-        return { code: 1, data: data, error: '' };
     }
     catch(err){
         console.log(err);
-        return { code: 0, data: data, error: err };
+        return { code: 0, data: {}, error: err };
     }
 };
 
@@ -438,8 +455,6 @@ tw_Appointment.statics.cancelBooking = async function(id, cancelReason, curUser)
                     isActive: false,
                     cancelledAt: Date.now(),
                     cancelledBy: curUser ? curUser : 'System',
-                    updatedAt: Date.now(),
-                    updatedBy: curUser ? curUser : 'System'
                 }
             }
         );
@@ -469,8 +484,9 @@ tw_Appointment.statics.sendMailAutoRemindBooking = async function(id) {
 
     var customerInfo =  await Customer.findById(existBooking.customerId);
     var dentistInfo =  await User.findById(existBooking.dentistId);
-    var serviceInfo =  await ServiceGroup.findById(existBooking.serviceGroupId);
-    if(customerInfo == null || dentistInfo == null || serviceInfo == null) {
+    // var serviceInfo =  await ServiceGroup.findById(existBooking.serviceGroupId);
+    var contentInfo =  await GeneralConfig.findById(existBooking.content);
+    if(customerInfo == null || dentistInfo == null || contentInfo == null) {
         return;
     }
 
@@ -481,7 +497,8 @@ tw_Appointment.statics.sendMailAutoRemindBooking = async function(id) {
         template = template.replace('{date}', moment(existBooking.date).format('DD/MM/YYYY').toString());
         template = template.replace('{time}', existBooking.time);
         template = template.replace('{dentistName}', dentistInfo != null ? dentistInfo.name : '');
-        template = template.replace('{service}', serviceInfo != null ? serviceInfo.name : '');
+        // template = template.replace('{service}', serviceInfo != null ? serviceInfo.name : '');
+        template = template.replace('{content}', contentInfo != null ? contentInfo.value : '');
 
         if(customerInfo != null && !IsNullOrEmpty(customerInfo.email)) {
             await sendMail({ to: customerInfo.email, subject: 'THƯ NHẮC HẸN', body: template });

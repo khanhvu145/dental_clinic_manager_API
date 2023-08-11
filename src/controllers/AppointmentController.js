@@ -42,17 +42,20 @@ const AppointmentController = {
                     return res.status(200).json({ success: false, error: "Không có thông tin nha sĩ" });
                 }
             }
-            if(formData.serviceGroupId == null || formData.serviceGroupId == '') {
-                return res.status(200).json({ success: false, error: "Hãy chọn dịch vụ" });
-            }
-            else{
-                var serviceInfo =  await ServiceGroup.findById(formData.serviceGroupId);
-                if(serviceInfo == null){
-                    return res.status(200).json({ success: false, error: "Không có thông tin loại dịch vụ" });
-                }
-            }
+            // if(formData.serviceGroupId == null || formData.serviceGroupId == '') {
+            //     return res.status(200).json({ success: false, error: "Hãy chọn dịch vụ" });
+            // }
+            // else{
+            //     var serviceInfo =  await ServiceGroup.findById(formData.serviceGroupId);
+            //     if(serviceInfo == null){
+            //         return res.status(200).json({ success: false, error: "Không có thông tin loại dịch vụ" });
+            //     }
+            // }
             if((formData.date == null || formData.date == '') || (formData.time == null || formData.time == '') || (formData.duration == null || formData.duration == '' || formData.duration == 0)) {
                 return res.status(200).json({ success: false, error: "Hãy chọn thời gian hẹn" });
+            }
+            if(formData.content == null || formData.content == '') {
+                return res.status(200).json({ success: false, error: "Hãy chọn nội dung lịch hẹn" });
             }
             //Kiểm tra thời gian book
             var checkCanBook = await Appointment.checkCanBook(formData);
@@ -267,10 +270,10 @@ const AppointmentController = {
                     as: "dentistInfo"
                 }},
                 { $lookup: {
-                    from: "tw_servicegroups",
-                    localField: "serviceGroupId",
+                    from: "tw_appointments",
+                    localField: "refId",
                     foreignField: "_id",
-                    as: "serviceGroupInfo"
+                    as: "refInfo"
                 }},
                 {
                     $addFields: {
@@ -280,21 +283,22 @@ const AppointmentController = {
                         "customerPhysicalId": { $arrayElemAt: ["$customerInfo.physicalId", 0] },
                         "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
                         "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
-                        "customerDateOfIssue": { $arrayElemAt: ["$customerInfo.dateOfIssue", 0] },
-                        "customerPlaceOfIssue": { $arrayElemAt: ["$customerInfo.placeOfIssue", 0] },
-                        "customerEmail": { $arrayElemAt: ["$customerInfo.email", 0] },
-                        "customerAddress": { $arrayElemAt: ["$customerInfo.address", 0] },
-                        "customerImg": { $arrayElemAt: ["$customerInfo.img", 0] },
-                        "customerImageFile": { $arrayElemAt: ["$customerInfo.imageFile", 0] },
-                        "customerGroup": { $arrayElemAt: ["$customerInfo.customerGroup", 0] },
-                        "customerSource": { $arrayElemAt: ["$customerInfo.source", 0] },
+                        // "customerDateOfIssue": { $arrayElemAt: ["$customerInfo.dateOfIssue", 0] },
+                        // "customerPlaceOfIssue": { $arrayElemAt: ["$customerInfo.placeOfIssue", 0] },
+                        // "customerEmail": { $arrayElemAt: ["$customerInfo.email", 0] },
+                        // "customerAddress": { $arrayElemAt: ["$customerInfo.address", 0] },
+                        // "customerImg": { $arrayElemAt: ["$customerInfo.img", 0] },
+                        // "customerImageFile": { $arrayElemAt: ["$customerInfo.imageFile", 0] },
+                        // "customerGroup": { $arrayElemAt: ["$customerInfo.customerGroup", 0] },
+                        // "customerSource": { $arrayElemAt: ["$customerInfo.source", 0] },
                         "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
                         "dentistPhone": { $arrayElemAt: ["$dentistInfo.phone", 0] },
-                        "dentistBirthday": { $arrayElemAt: ["$dentistInfo.birthday", 0] },
-                        "dentistPhysicalId": { $arrayElemAt: ["$dentistInfo.physicalId", 0] },
+                        // "dentistBirthday": { $arrayElemAt: ["$dentistInfo.birthday", 0] },
+                        // "dentistPhysicalId": { $arrayElemAt: ["$dentistInfo.physicalId", 0] },
                         "dentistCode": { $arrayElemAt: ["$dentistInfo.code", 0] },
                         "dentistGender": { $arrayElemAt: ["$dentistInfo.gender", 0] },
-                        "serviceGroupName": { $arrayElemAt: ["$serviceGroupInfo.name", 0] }
+                        "refCode": { $arrayElemAt: ["$refInfo.code", 0] },
+                        "refTransferReason": { $arrayElemAt: ["$refInfo.transferReason", 0] },
                     }
                 },
                  // {
@@ -303,7 +307,8 @@ const AppointmentController = {
                 { $project: { 
                     customerInfo: 0,
                     dentistInfo: 0,
-                    serviceGroupInfo: 0
+                    refInfo: 0,
+                    // serviceGroupInfo: 0
                 }},
                 { $match: { 
                     $and: [
@@ -315,12 +320,14 @@ const AppointmentController = {
                                 { customerCode: { $regex: filters.customersF, $options:"i" } },
                             ] 
                         },
-                        { status: { $in: (filters.statusF.length > 0 && filters.statusF != null) ? filters.statusF : ["Booked", "Checkin", "Examined", "Cancelled"] } },
                         dateFromF ? { date: { $gte: dateFromF } } : {},
                         dateToF ? { date: { $lte: dateToF } } : {},
                         (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
                             dentistId: { $in: listDentistId }
-                        } : {}
+                        } : {},
+                        (filters.statusF.length > 0 && filters.statusF != null) ? { 
+                            status: { $in: filters.statusF }
+                        } : {},
                     ]
                 }},
                 { $sort: { timeFrom: sorts }},
@@ -377,8 +384,8 @@ const AppointmentController = {
         try{
             var formData = req.body;
             /** Kiểm tra điều kiện đầu vào */
-            if(formData.serviceGroupId == null || formData.serviceGroupId == '') {
-                return res.status(200).json({ success: false, error: "Hãy chọn dịch vụ" });
+            if(formData.content == null || formData.content == '') {
+                return res.status(200).json({ success: false, error: "Hãy chọn nội dung" });
             }
 
             /**Kiểm tra tồn tại */
@@ -392,7 +399,7 @@ const AppointmentController = {
                 { _id: formData._id }, 
                 {
                     $set: { 
-                        serviceGroupId: formData.serviceGroupId ? formData.serviceGroupId : '',
+                        content: formData.content ? formData.content : '',
                         type: formData.type ? formData.type : exist.type,
                         note: formData.note ? formData.note : '', 
                         updatedAt: Date.now(),
@@ -405,13 +412,18 @@ const AppointmentController = {
             /**Log */
             var log = [];
             var isUpdate = false;
-            if(!exist.serviceGroupId.equals(data.serviceGroupId)){
-                const ServiceGroupData = await ServiceGroup.find({ isActive: true });
+            if(!exist.content.equals(data.content)){
+                const GeneralConfigData = await GeneralConfig.find({
+                    $and: [
+                        { type: { $regex: 'appointment_content', $options:"i" } },
+                        { isActive: true }
+                    ]
+                });
                 isUpdate = true;
                 var item = {
-                    column: 'Dịch vụ',
-                    oldvalue: ServiceGroupData.find(x => x._id.equals(exist.serviceGroupId)) ? ServiceGroupData.find(x => x._id.equals(exist.serviceGroupId)).name : '',
-                    newvalue: ServiceGroupData.find(x => x._id.equals(data.serviceGroupId)) ? ServiceGroupData.find(x => x._id.equals(data.serviceGroupId)).name : ''
+                    column: 'Nội dung',
+                    oldvalue: GeneralConfigData.find(x => x._id.equals(exist.content)) ? GeneralConfigData.find(x => x._id.equals(exist.content)).value : '',
+                    newvalue: GeneralConfigData.find(x => x._id.equals(data.content)) ? GeneralConfigData.find(x => x._id.equals(data.content)).value : ''
                 };
                 log.push(item);
             }
@@ -663,6 +675,9 @@ const AppointmentController = {
             if((formData.date == null || formData.date == '') || (formData.time == null || formData.time == '') || (formData.duration == null || formData.duration == '' || formData.duration == 0)) {
                 return res.status(200).json({ success: false, error: "Hãy chọn thời gian hẹn" });
             }
+            if(IsNullOrEmpty(formData.transferReason)){
+                return res.status(200).json({ success: false, error: "Hãy nhập lý do chuyển hẹn" });
+            }
             
             /**Kiểm tra tồn tại */
             const exist = await Appointment.findById(formData._id);
@@ -696,16 +711,41 @@ const AppointmentController = {
             exist.time = formData.time;
             exist.duration = formData.duration;
             exist.durationType = formData.durationType;
-            exist.note = formData.note;
             exist.createdBy = formData.updatedBy;
+
+            exist.note = formData.note || '';
+            exist.type = formData.type ? formData.type : exist.type;
+            exist.content = formData.content ? formData.content : exist.content;
 
             //Tạo booking mới
             var data = await Appointment.booking(exist);
             if(data.code <= 0){
                 return res.status(200).json({ success: false, error: data.error });
             }
+            else{
+                if(data.data){
+                    await Appointment.updateOne(
+                        { _id: data.data._id }, 
+                        {
+                            $set: {
+                                refId: exist._id ? exist._id : formData._id,
+                            }
+                        }
+                    );
+                }
+            }
+            
             //Hủy booking cũ
-            await Appointment.cancelBooking(exist._id, 'Lịch hẹn được chuyển sang lịch hẹn ' + data.code, formData.updatedBy);
+            var newCode = (data && data.data && data.data.code) ? data.data.code : '';
+            await Appointment.cancelBooking(exist._id, `Lịch hẹn được chuyển sang lịch hẹn ${newCode} (${formData.transferReason})`, formData.updatedBy);
+            await Appointment.updateOne(
+                { _id: exist._id }, 
+                {
+                    $set: { 
+                        transferReason: formData.transferReason ? formData.transferReason : ''
+                    }
+                }
+            );
 
             // var timeFrom = await Appointment.setTimeFrom(formData.date, formData.time);
             // var timeTo = await Appointment.setTimeTo(timeFrom, parseFloat(formData.duration), formData.durationType);
@@ -749,7 +789,9 @@ const AppointmentController = {
                 await AppointmentLog.CreateLog(data._id, 'Chuyển lịch hẹn', log, formData.updatedBy);
             }
 
-            return res.status(200).json({ success: true, message: 'Chuyển lịch hẹn thành công', data: data.data });
+            var newData = await Appointment.findById(data.data._id);
+
+            return res.status(200).json({ success: true, message: 'Chuyển lịch hẹn thành công', data: newData });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
@@ -773,15 +815,19 @@ const AppointmentController = {
             /**Xử lý */
             var customerInfo =  await Customer.findById(exist.customerId);
             var dentistInfo =  await User.findById(exist.dentistId);
-            var serviceInfo =  await ServiceGroup.findById(exist.serviceGroupId);
+            // var serviceInfo =  await ServiceGroup.findById(exist.serviceGroupId);
+            var contentInfo =  await GeneralConfig.findById(exist.content);
             if(customerInfo == null) {
                 return res.status(200).json({ success: false, error: "Không có thông tin khách hàng" });
             }
             if(dentistInfo == null) {
                 return res.status(200).json({ success: false, error: "Không có thông tin nha sĩ" });
             }
-            if(serviceInfo == null) {
-                return res.status(200).json({ success: false, error: "Không có thông tin dịch vụ" });
+            // if(serviceInfo == null) {
+            //     return res.status(200).json({ success: false, error: "Không có thông tin dịch vụ" });
+            // }
+            if(contentInfo == null) {
+                return res.status(200).json({ success: false, error: "Không có thông tin nội dung" });
             }
 
             var template = fs.readFileSync(path.join(__dirname, '/../content/emailTemplate/RemindEmailTemplate.html'),{encoding:'utf-8'});  
@@ -791,7 +837,8 @@ const AppointmentController = {
             template = template.replace('{date}', moment(exist.date).format('DD/MM/YYYY').toString());
             template = template.replace('{time}', exist.time);
             template = template.replace('{dentistName}', dentistInfo != null ? dentistInfo.name : '');
-            template = template.replace('{service}', serviceInfo != null ? serviceInfo.name : '');
+            // template = template.replace('{service}', serviceInfo != null ? serviceInfo.name : '');
+            template = template.replace('{content}', contentInfo != null ? contentInfo.value : '');
            
             if(customerInfo != null && !IsNullOrEmpty(customerInfo.email)) {
                 await sendMail({ to: customerInfo.email, subject: 'THƯ NHẮC HẸN', body: template });
