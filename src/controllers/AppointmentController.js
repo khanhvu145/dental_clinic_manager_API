@@ -84,6 +84,19 @@ const AppointmentController = {
                 return res.status(200).json({ success: false, error: data.error });
             }
 
+            //#region Log khách hàng
+            if(data && data.data){
+                var log = [];
+                var item = {
+                    column: 'Đặt hẹn',
+                    oldvalue: '',
+                    newvalue: data.data.code || ''
+                };
+                log.push(item);
+                await CustomerLog.CreateLog(data.data.customerId, 'booking', log, 'create', formData.createdBy);
+            }
+            //#endregion
+
             return res.status(200).json({ success: true, message: 'Đặt hẹn thành công', data: data.data, checkCanBook: checkCanBook });
             // var timeFrom = await Appointment.setTimeFrom(formData.date, formData.time);
             // var timeTo = await Appointment.setTimeTo(timeFrom, parseFloat(formData.duration), formData.durationType);
@@ -456,6 +469,17 @@ const AppointmentController = {
                 await AppointmentLog.CreateLog(data._id, 'update', log, formData.updatedBy);
             }
 
+            //#region Log khách hàng
+            var log = [];
+            var item = {
+                column: 'Chỉnh sửa đặt hẹn',
+                oldvalue: '',
+                newvalue: data.code || ''
+            };
+            log.push(item);
+            await CustomerLog.CreateLog(data.customerId, 'booking', log, 'update', formData.updatedBy);
+            //#endregion
+
             return res.status(200).json({ success: true, message: 'Cập nhật thành công', data: data });
         }
         catch(err){
@@ -484,30 +508,17 @@ const AppointmentController = {
 
             /**Xử lý */
             await Appointment.cancelBooking(formData.id, formData.cancelReason, formData.updatedBy);
-            // await Appointment.updateOne(
-            //     { _id: formData.id }, 
-            //     {
-            //         $set: { 
-            //             cancelReason: formData.cancelReason ? formData.cancelReason : '',
-            //             status: 'Cancelled',
-            //             isActive: false,
-            //             updatedAt: Date.now(),
-            //             updatedBy: formData.updatedBy ? formData.updatedBy : 'System',
-            //             cancelledAt: Date.now(),
-            //             cancelledBy: formData.updatedBy ? formData.updatedBy : 'System'
-            //         }
-            //     }
-            // );
-            
-            /**Log */
-            // var log = [];
-            // var item = {
-            //     column: 'Lý do',
-            //     oldvalue: '',
-            //     newvalue: formData.cancelReason || ''
-            // };
-            // log.push(item);
-            // await AppointmentLog.CreateLog(formData.id, 'cancel', log, formData.updatedBy);
+
+            //#region Log khách hàng
+            var log = [];
+            var item = {
+                column: 'Hủy đặt hẹn',
+                oldvalue: '',
+                newvalue: exist.code || ''
+            };
+            log.push(item);
+            await CustomerLog.CreateLog(exist.customerId, 'booking', log, 'cancel', formData.updatedBy);
+            //#endregion
 
             return res.status(200).json({ success: true, message: 'Hủy lịch hẹn thành công' });
         }
@@ -554,6 +565,20 @@ const AppointmentController = {
                 
                 /**Logs */
                 await AppointmentLog.CreateLog(data._id, 'Xác nhận đến khám', [], formData.currentUser);
+
+                //#region Log khách hàng
+                if(data){
+                    var log = [];
+                    var item = {
+                        column: 'Xác nhận đến khám',
+                        oldvalue: '',
+                        newvalue: data.code || ''
+                    };
+                    log.push(item);
+                    await CustomerLog.CreateLog(data.customerId, 'booking', log, 'checkin', formData.currentUser);
+                }
+                //#endregion
+
                 /**Notify */
 
                 return res.status(200).json({ success: true, message: 'Xác nhận thành công' });
@@ -583,7 +608,7 @@ const AppointmentController = {
                 return res.status(200).json({ success: true, message: 'Hủy xác nhận thành công' });
             }
             else{
-                return res.status(200).json({ success: true, message: 'Cập nhật thành công' });
+                return res.status(200).json({ success: false, message: 'Loại trạng thái không đúng' });
             }
         }
         catch(err){
@@ -747,47 +772,35 @@ const AppointmentController = {
                 }
             );
 
-            // var timeFrom = await Appointment.setTimeFrom(formData.date, formData.time);
-            // var timeTo = await Appointment.setTimeTo(timeFrom, parseFloat(formData.duration), formData.durationType);
-            // var data = await Appointment.findOneAndUpdate(
-            //     { _id: formData.id }, 
-            //     {
-            //         $set: { 
-            //             dentistId: formData.dentistId ? formData.dentistId : '', 
-            //             date: formData.date ? formData.date : null,
-            //             time: formData.time ? formData.time : '',
-            //             duration: formData.duration ? parseFloat(formData.duration) : parseFloat(0),
-            //             durationType: formData.durationType ? formData.durationType : 'minutes',
-            //             status: 'Booked',
-            //             note: formData.note ? formData.note : exist.note, 
-            //             timeFrom: timeFrom ? timeFrom : null, 
-            //             timeTo: timeTo ? timeTo : null, 
-            //             updatedAt: Date.now(),
-            //             updatedBy: formData.updatedBy ? formData.updatedBy : ''
-            //         }
-            //     },
-            //     {
-            //         new: true,
-            //     }
-            // );
-            // var data = await Appointment.findById(formData.id);
-
             /**Log */
-            var log = [];
-            var isUpdate = false;
-            if(data) {
-                isUpdate = true;
+            // var log = [];
+            // var isUpdate = false;
+            // if(data && data.data) {
+            //     isUpdate = true;
+            //     var item = {
+            //         column: 'Được chuyển từ lịch hẹn',
+            //         oldvalue: '',
+            //         newvalue: exist.code
+            //     };
+            //     log.push(item);
+            // }
+            // if (isUpdate)
+            // {
+            //     await AppointmentLog.CreateLog(data.data._id, 'Chuyển lịch hẹn', log, formData.updatedBy);
+            // }
+
+            //#region Log khách hàng
+            if(data && data.data){
+                var log = [];
                 var item = {
-                    column: 'Được chuyển từ lịch hẹn',
-                    oldvalue: '',
-                    newvalue: exist.code
+                    column: 'Chuyển lịch hẹn',
+                    oldvalue: exist.code || '',
+                    newvalue: data.data.code || ''
                 };
                 log.push(item);
+                await CustomerLog.CreateLog(data.data.customerId, 'booking', log, 'transfer', formData.updatedBy);
             }
-            if (isUpdate)
-            {
-                await AppointmentLog.CreateLog(data._id, 'Chuyển lịch hẹn', log, formData.updatedBy);
-            }
+            //#endregion
 
             var newData = await Appointment.findById(data.data._id);
 

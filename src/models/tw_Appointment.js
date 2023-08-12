@@ -174,7 +174,7 @@ tw_Appointment.statics.booking = async function(formData){
                         var job = await new CronJob(
                             dateCron,
                             async function() {
-                                await _this.cancelBooking(data._id, 'Hủy hẹn tự động do qua thời gian đặt hẹn', formData.createdBy);
+                                await _this.autoCancelBooking(data._id, 'Hủy hẹn tự động do qua thời gian đặt hẹn', formData.createdBy);
                             },
                             null,
                             true,
@@ -331,15 +331,6 @@ tw_Appointment.statics.booking = async function(formData){
             {
                 await AppointmentLogModel.CreateLog(data._id, 'create', log, formData.createdBy);
             }
-            //#endregion
-    
-            //#region Log khách hàng
-            // if(data){
-            //     var content = {
-            //         code: data.code,
-            //     };
-            //     await CustomerLog.CreateLog(data.customerId, 'booking', data._id, content, formData.createdBy);
-            // }
             //#endregion
     
             return { code: 1, data: data, error: '' };
@@ -524,6 +515,18 @@ tw_Appointment.statics.setTimeTo = async function setTimeTo(timeFrom, duration, 
     }
     return timeTo;
 };
+
+tw_Appointment.statics.autoCancelBooking = async function(id, cancelReason, curUser) {
+    const _this = this;
+    const exist = await this.findById(id);
+    if(exist == null) return;
+    if(exist.status == "Booked") {
+        await _this.cancelBooking(id, cancelReason, curUser);
+    }
+    else{
+        return;
+    }
+}
 /**Appointment log */
 const tw_Appointment_Log = new Schema({
     appointmentId: { 
