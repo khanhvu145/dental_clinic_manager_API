@@ -173,12 +173,10 @@ const PaymentController = {
             //#endregion
 
             //#region Log
-            console.log('step 1')
             var log = [];
             var isUpdate = false;
-            console.log('step 2')
+            
             if(receipts && receipts.data) {
-                console.log('step 3')
                 isUpdate = true;
                 var item = {
                     column: 'Xác nhận thanh toán',
@@ -189,16 +187,13 @@ const PaymentController = {
                         amount: receipts.data.amount
                     }
                 };
-                console.log('step 4')
                 log.push(item);
             }
-            console.log('step 5')
+            
             if (isUpdate)
             {
-                console.log('step 6', log)
                 await CustomerLog.CreateLog(receipts.data.customerId, 'payment', log, 'confirm', formData.updatedBy);
             }
-            console.log('step 7')
             //#endregion
 
             return res.status(200).json({ success: true, message: 'Thanh toán thành công', paymentData: paymentData, receiptsData: receipts.data });

@@ -111,6 +111,10 @@ const tw_Appointment = new Schema({
     refId: {
         type: Schema.Types.ObjectId
     },
+    examinationId: { 
+        type: Schema.Types.ObjectId, 
+        ref: "tw_examinations"
+    },
 });
 
 tw_Appointment.plugin(mongooseDelete, { 
@@ -436,7 +440,7 @@ tw_Appointment.statics.cancelBooking = async function(id, cancelReason, curUser)
     const exist = await this.findById(id);
     if(exist == null) return;
 
-    if(exist.status != "Cancelled" && exist.status != "Examined") {
+    if(exist.status != "Cancelled" && exist.status != "Completed") {
         await this.updateOne(
             { _id: exist._id }, 
             {

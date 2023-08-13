@@ -55,7 +55,12 @@ const WorkingCalendarController = {
                     dentistInfo: 0,
                     serviceGroupInfo: 0
                 }},
-                { $match: { dentistId: mongoose.Types.ObjectId(req.body.dentistId) } }
+                { $match: {
+                    $and: [
+                        { dentistId: mongoose.Types.ObjectId(req.body.dentistId) },
+                        { status: { $in: (req.body.statusF.length > 0 && req.body.statusF != null) ? req.body.statusF : ["Booked", "Checkin", "Completed", "Cancelled"] } },
+                    ]
+                }}
             ]);
 
             return res.status(200).json({ success: true, data: data });

@@ -8,6 +8,7 @@ const tw_Customer = require('../models/tw_Customer');
 const Customer = tw_Customer.CustomerModel;
 const CustomerLog = tw_Customer.CustomerLogModel;
 const AppointmentConfig = require('../models/tw_AppointmentConfig');
+const Examination = require('../models/tw_Examination');
 const IsNullOrEmpty = require('../helpers/IsNullOrEmpty');
 const isObjectId = require('../helpers/isObjectId');
 const convertDateToCron = require('../helpers/convertDateToCron');
@@ -377,7 +378,7 @@ const AppointmentController = {
                                 { customerCode: { $regex: filters.customersF, $options:"i" } },
                             ] 
                         },
-                        { status: { $in: (filters.statusF.length > 0 && filters.statusF != null) ? filters.statusF : ["Booked", "Checkin", "Examined", "Cancelled"] } },
+                        { status: { $in: (filters.statusF.length > 0 && filters.statusF != null) ? filters.statusF : ["Booked", "Checkin", "Completed", "Cancelled"] } },
                         dateFromF ? { date: { $gte: dateFromF } } : {},
                         dateToF ? { date: { $lte: dateToF } } : {},
                         (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
@@ -502,7 +503,7 @@ const AppointmentController = {
             }
             else{
                 /**Kiểm tra trạng thái lịch hẹn */
-                if(exist.status == 'Cancelled' || exist.status == 'Examined'){
+                if(exist.status == 'Cancelled' || exist.status == 'Completed'){
                     return res.status(200).json({ success: false, error: "Trạng thái lịch hẹn không thể hủy" });
                 }
             }
@@ -584,29 +585,63 @@ const AppointmentController = {
 
                 return res.status(200).json({ success: true, message: 'Xác nhận thành công' });
             }
-            else if(formData.action == 'Booked'){
-                /**Kiểm tra trạng thái lịch hẹn */
+            else if(formData.action == 'Completed'){
+                //#region Kiểm tra
                 if(exist.status != 'Checkin'){
-                    return res.status(200).json({ success: false, error: "Trạng thái lịch hẹn hiện tại không thể hủy xác nhận" });
+                    return res.status(200).json({ success: false, error: "Trạng thái lịch hẹn hiện tại không thể xác nhận" });
                 }
-
+                if(IsNullOrEmpty(formData.value)){
+                    return res.status(200).json({ success: false, error: "Hãy nhập mã phiếu khám" });
+                }
+                //
+                var examination = await Examination.findOne({ code: { $eq: formData.value } });
+                if(examination == null){
+                    return res.status(200).json({ success: false, error: "Không có thông tin phiếu khám" });
+                }
+                else{
+                    if(examination.status == 'cancelled'){
+                        return res.status(200).json({ success: false, error: "Phiếu khám đã được hủy" });
+                    }
+                    var booking = await Appointment.findOne({ examinationId: examination._id });
+                    if(booking){
+                        return res.status(200).json({ success: false, error: "Phiếu khám đã thuộc lịch hẹn" });
+                    }
+                    if(!examination.customerId.equals(exist.customerId)){
+                        return res.status(200).json({ success: false, error: "Phiếu khám không thuộc khách hàng" });
+                    }
+                    if(!examination.dentistId.equals(exist.dentistId)){
+                        return res.status(200).json({ success: false, error: "Phiếu khám không thuộc nha sĩ" });
+                    }
+                }
+                //#endregion
                 await Appointment.updateOne(
                     { _id: formData.id }, 
                     {
                         $set: { 
-                            status: 'Booked', 
+                            status: 'Completed', 
+                            examinationId: examination._id, 
                             updatedAt: Date.now(),
                             updatedBy: formData.currentUser ? formData.currentUser : ''
                         }
                     }
                 );
                 var data = await Appointment.findById(formData.id);
-                
                 /**Logs */
-                await AppointmentLog.CreateLog(data._id, 'Hủy xác nhận đến khám', [], formData.currentUser);
-                /**Notify */
+                await AppointmentLog.CreateLog(data._id, 'Xác nhận hoàn thành lịch hẹn', [], formData.currentUser);
+                //#region Log khách hàng
+                if(data){
+                    var log = [];
+                    var item = {
+                        column: 'Hoàn thành lịch hẹn',
+                        oldvalue: '',
+                        newvalue: data.code || ''
+                    };
+                    log.push(item);
+                    await CustomerLog.CreateLog(data.customerId, 'booking', log, 'completed', formData.currentUser);
+                }
+                //#endregion
 
-                return res.status(200).json({ success: true, message: 'Hủy xác nhận thành công' });
+                return res.status(200).json({ success: true, message: 'Xác nhận thành công' });
             }
             else{
                 return res.status(200).json({ success: false, message: 'Loại trạng thái không đúng' });
@@ -866,7 +901,7 @@ const AppointmentController = {
                 newvalue: moment().format('DD/MM/YYYY hh:mm')
             };
             log.push(item);
-            await AppointmentLog.CreateLog(exist._id, 'Gửi nhắc hẹn đến khách hàng', log, Date.now());
+            await AppointmentLog.CreateLog(exist._id, 'Gửi nhắc hẹn đến khách hàng', log, formData.currentUser);
 
             return res.status(200).json({ success: true, message: 'Gửi nhắc hẹn đến khách hàng thành công' });
         }
