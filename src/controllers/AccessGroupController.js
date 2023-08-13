@@ -98,7 +98,7 @@ const AccessGroupController = {
                 ]
             }).count();
             
-            return res.status(200).json({ success: true, data: data });
+            return res.status(200).json({ success: true, data: data, total: total });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });

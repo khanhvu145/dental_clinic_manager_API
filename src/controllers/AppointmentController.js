@@ -259,7 +259,8 @@ const AppointmentController = {
     getByQuery: async(req, res) => {
         try{
             var filters = req.body.filters;
-            var sorts = req.body.sorts;
+            // var sorts = req.body.sorts;
+            var sorts = req.body.sorts.split("&&");
             var pages = req.body.pages;
             var listDentistId = filters.dentistsF.map(x => mongoose.Types.ObjectId(x));
             var dateFromF = null;
@@ -311,7 +312,7 @@ const AppointmentController = {
                         "dentistCode": { $arrayElemAt: ["$dentistInfo.code", 0] },
                         "dentistGender": { $arrayElemAt: ["$dentistInfo.gender", 0] },
                         "refCode": { $arrayElemAt: ["$refInfo.code", 0] },
-                        "refTransferReason": { $arrayElemAt: ["$refInfo.transferReason", 0] },
+                        // "refTransferReason": { $arrayElemAt: ["$refInfo.transferReason", 0] },
                     }
                 },
                  // {
@@ -343,7 +344,7 @@ const AppointmentController = {
                         } : {},
                     ]
                 }},
-                { $sort: { timeFrom: sorts }},
+                { $sort: sorts[0] == 'timeFrom' ? { timeFrom: Number(sorts[1]) } : { createdAt: Number(sorts[1]) }},
                 { $limit: (pages.from + pages.size) },
                 { $skip: pages.from }
             ]);
@@ -762,7 +763,7 @@ const AppointmentController = {
             
             //Hủy booking cũ
             var newCode = (data && data.data && data.data.code) ? data.data.code : '';
-            await Appointment.cancelBooking(exist._id, `Lịch hẹn được chuyển sang lịch hẹn ${newCode} (${formData.transferReason})`, formData.updatedBy);
+            await Appointment.cancelBooking(exist._id, `Lịch hẹn được chuyển sang lịch hẹn ${newCode} | ${formData.transferReason}`, formData.updatedBy);
             await Appointment.updateOne(
                 { _id: exist._id }, 
                 {
