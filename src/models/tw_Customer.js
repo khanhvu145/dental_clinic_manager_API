@@ -73,7 +73,10 @@ const tw_Customer = new Schema({
     },
     updatedBy: {
         type: String,
-    }
+    },
+    recentActivity: {
+        type: Date,
+    },
 });
 
 tw_Customer.plugin(mongooseDelete, { 

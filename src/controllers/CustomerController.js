@@ -217,6 +217,15 @@ const CustomerController = {
                 ]
             }).count();
 
+            if(data && data.length > 0){
+                for(var i = 0; i < data.length; i++){
+                    var log = await CustomerLog.find({ customerId: mongoose.Types.ObjectId(data[i]._id) }).sort({ "createdAt": -1 }).limit(1);
+                    if(log && log.length > 0){
+                        data[i].recentActivity = log[0].createdAt;
+                    }
+                }
+            }
+            
             return res.status(200).json({ success: true, data: data, total: total });
         }
         catch(err){
