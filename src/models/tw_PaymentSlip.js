@@ -23,8 +23,15 @@ const tw_PaymentSlip = new Schema({
     type: {
         type: String,
     },
-    note: {
+    receivingUnit: {
         type: String,
+        required: true,
+    },
+    addressUnit: {
+        type: String,
+    },
+    originalDocuments: {
+        type: Array,
     },
     createdAt: {
         type: Date,
@@ -55,6 +62,9 @@ tw_PaymentSlip.statics.createPaymentSlip = async function(data){
             content: data.content,
             status: data.status,
             type: data.type,
+            receivingUnit: data.receivingUnit,
+            addressUnit: data.addressUnit,
+            originalDocuments: data.originalDocuments || [],
             createdAt: Date.now(),
             createdBy: data.createdBy
         }).save();

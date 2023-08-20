@@ -26,20 +26,20 @@ const PaymentSlipController = {
             var data = await PaymentSlip.find({
                 $and: [
                     { code: { $regex: filters.codeF, $options:"i" } },
-                    dateFromF ? { date: { $gte: dateFromF } } : {},
-                    dateToF ? { date: { $lte: dateToF } } : {},
+                    dateFromF ? { createdAt: { $gte: dateFromF } } : {},
+                    dateToF ? { createdAt: { $lte: dateToF } } : {},
                     filters.statusF != 'all' ? { status: filters.statusF } : {},
-                    filters.typeF != 'all' ? { type: filters.typeF } : {},
+                    // filters.typeF != 'all' ? { type: filters.typeF } : {},
                 ]
             }).sort(sorts).limit(pages.size).skip(pages.from);
             
             var total = await PaymentSlip.find({
                 $and: [
                     { code: { $regex: filters.codeF, $options:"i" } },
-                    dateFromF ? { date: { $gte: dateFromF } } : {},
-                    dateToF ? { date: { $lte: dateToF } } : {},
+                    dateFromF ? { createdAt: { $gte: dateFromF } } : {},
+                    dateToF ? { createdAt: { $lte: dateToF } } : {},
                     filters.statusF != 'all' ? { status: filters.statusF } : {},
-                    filters.typeF != 'all' ? { type: filters.typeF } : {},
+                    // filters.typeF != 'all' ? { type: filters.typeF } : {},
                 ]
             }).count();
             
@@ -53,6 +53,9 @@ const PaymentSlipController = {
         try{
             var formData = req.body;
             /** Kiểm tra điều kiện đầu vào */
+            if(formData.receivingUnit == null || formData.receivingUnit == '') {
+                return res.status(200).json({ success: false, error: "Hãy nhập đơn vị nhận tiền" });
+            }
             if(formData.amount == null || formData.amount == '' || parseFloat(formData.amount) == 0) {
                 return res.status(200).json({ success: false, error: "Hãy nhập số tiền chi" });
             }
@@ -66,6 +69,9 @@ const PaymentSlipController = {
             payment.content = formData.content;
             payment.status = 'new';
             payment.type = 'other';
+            payment.receivingUnit = formData.receivingUnit;
+            payment.addressUnit = formData.addressUnit;
+            payment.originalDocuments = formData.originalDocuments || [];
             payment.createdBy = formData.createdBy ? formData.createdBy : '';
             //Xử lý
             const data = await PaymentSlip.createPaymentSlip(payment);
@@ -82,48 +88,75 @@ const PaymentSlipController = {
     },
     getById: async(req, res) => {
         try{
-            var data = await Receipts.aggregate([
-                { $lookup: {
-                    from: "tw_customers",
-                    localField: "customerId",
-                    foreignField: "_id",
-                    as: "customerInfo"
-                }},
-                { $lookup: {
-                    from: "tw_examinations",
-                    localField: "examinationId",
-                    foreignField: "_id",
-                    as: "examinationInfo"
-                }},
-                {
-                    $addFields: {
-                        "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
-                        "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
-                        "customerBirthday": { $arrayElemAt: ["$customerInfo.birthday", 0] },
-                        "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
-                        "customerPhysicalId": { $arrayElemAt: ["$customerInfo.physicalId", 0] },
-                        "customerPhone": { $arrayElemAt: ["$customerInfo.phone", 0] },
-                        "diagnosisTreatment": { $arrayElemAt: ["$examinationInfo.diagnosisTreatment", 0] },
-                        "totalAmount": { $arrayElemAt: ["$examinationInfo.totalAmount", 0] },
-                    }
-                },
-                { $project: { 
-                    customerInfo: 0,
-                    examinationInfo: 0,
-                }},
-                { $match: { 
-                    $and: [
-                        { _id: mongoose.Types.ObjectId(req.params.id) },
-                    ]
-                }},
-                { $limit: 1 },
-            ]);
+            const data = await PaymentSlip.findById(req.params.id);
             return res.status(200).json({ success: true, data: data });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
         }
     },
+    complete: async(req, res) => {
+        try{
+            var formData = req.body;
+            // Kiểm tra dữ liệu
+            var existed = await PaymentSlip.findById(formData._id);
+            if(existed == null) {
+                return res.status(200).json({ success: false, error: 'Không có thông tin phiếu chi' });
+            }
+            if(existed.status != 'new'){
+                return res.status(200).json({ success: false, error: 'Trạng thái phiếu chi không hợp lệ' });
+            }
+            //Xử lý
+            await PaymentSlip.updateOne(
+                { _id: formData._id }, 
+                {
+                    $set: { 
+                        // note: formData.note || '',
+                        status: 'completed',
+                        date: formData.date || new Date(),
+                        updatedAt: new Date(),
+                        updatedBy: formData.updatedBy
+                    }
+                }
+            );
+
+            var data = await PaymentSlip.findById(formData._id);
+            return res.status(200).json({ success: true, message: 'Hoàn tất phiếu chi thành công', data: data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    updateOriginalDocuments: async(req, res) => {
+        try{
+            var formData = req.body;
+            // Kiểm tra dữ liệu
+            var existed = await PaymentSlip.findById(formData.id);
+            if(existed == null) {
+                return res.status(200).json({ success: false, error: 'Không có thông tin phiếu chi' });
+            }
+            if(existed.status != 'new'){
+                return res.status(200).json({ success: false, error: 'Trạng thái phiếu chi không hợp lệ' });
+            }
+            //Xử lý
+            await PaymentSlip.updateOne(
+                { _id: formData.id }, 
+                {
+                    $set: { 
+                        originalDocuments: formData.originalDocuments,
+                        updatedAt: new Date(),
+                        updatedBy: formData.updatedBy
+                    }
+                }
+            );
+
+            var data = await PaymentSlip.findById(formData.id);
+            return res.status(200).json({ success: true, message: 'Cập nhật thành công thành công', data: data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    }
 };
 
 module.exports = PaymentSlipController;
