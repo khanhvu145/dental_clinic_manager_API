@@ -5,6 +5,7 @@ const Examination = require('../models/tw_Examination');
 const Payment = require('../models/tw_Payment');
 const Receipts = require('../models/tw_Receipts');
 const Designation = require('../models/tw_Examination_Designation');
+const Prescription = require('../models/tw_Examination_Prescription');
 const bcrypt = require('bcrypt');
 const salt = bcrypt.genSaltSync(10);
 const firebaseDB = require('../helpers/firebase');
@@ -1092,6 +1093,107 @@ const CustomerController = {
                 return res.status(200).json({ success: false, error: "Xác nhận điều trị không thành công" });
             }); 
             //#endregion
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    createPrescription: async (req, res) => {
+        try{
+            var formData = req.body;
+            // Kiểm tra thông tin phiếu khám
+            const examination = await Examination.findById(formData.examinationId);
+            if(examination == null){
+                return res.status(200).json({ success: false, error: "Không có thông tin phiếu khám" });
+            }
+            // Xử lý
+            const newData = await new Prescription({
+                examinationId: examination._id, 
+                advice: formData.advice || '', 
+                medicines: formData.medicines || [],
+                createdAt: Date.now(),
+                createdBy: formData.createdBy ? formData.createdBy : ''
+            }).save();
+
+            return res.status(200).json({ success: true, message: 'Lưu đơn thuốc thành công', data: newData });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    updatePrescription: async (req, res) => {
+        try{
+            var formData = req.body;
+            //Kiểm tra tồn tại
+            const existed = await Prescription.findById(formData._id);
+            if(existed == null){
+                return res.status(200).json({ success: false, error: "Không có thông tin đơn thuốc" });
+            }
+            // Xử lý
+            await Prescription.updateOne(
+                { _id: existed._id }, 
+                {
+                    $set: { 
+                        advice: formData.advice || '', 
+                        medicines: formData.medicines || [],
+                        updatedAt: Date.now(),
+                        updatedBy: formData.updatedBy ? formData.updatedBy : ''
+                    }
+                }
+            );
+            var data = await Prescription.findById(formData._id);
+
+            return res.status(200).json({ success: true, message: 'Lưu đơn thuốc thành công', data: data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getPrescriptionByExaminationId: async (req, res) => {
+        try{
+            var data = await Prescription.aggregate([
+                { $lookup: {
+                    from: "tw_examinations",
+                    localField: "examinationId",
+                    foreignField: "_id",
+                    as: "examinationInfo"
+                }},
+                { $lookup: {
+                    from: "tw_customers",
+                    localField: "examinationInfo.customerId",
+                    foreignField: "_id",
+                    as: "customerInfo"
+                }},
+                { $lookup: {
+                    from: "tw_users",
+                    localField: "examinationInfo.dentistId",
+                    foreignField: "_id",
+                    as: "dentistInfo"
+                }},
+                {
+                    $addFields: {
+                        "examinationCode": { $arrayElemAt: ["$examinationInfo.code", 0] },
+                        "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
+                        "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
+                        "customerBirthday": { $arrayElemAt: ["$customerInfo.birthday", 0] },
+                        "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
+                        "customerFullAddress": { $arrayElemAt: ["$customerInfo.fullAddress", 0] },
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
+                    }
+                },
+                { $project: { 
+                    examinationInfo: 0,
+                    dentistInfo: 0,
+                    customerInfo: 0
+                }},
+                { $match: { 
+                    $and: [
+                        { examinationId: mongoose.Types.ObjectId(req.params.id) },
+                    ]
+                }}
+            ]);
+
+            return res.status(200).json({ success: true, data: data && data.length > 0 ? data[data.length - 1] : new Prescription() });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
