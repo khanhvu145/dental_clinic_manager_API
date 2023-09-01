@@ -90,7 +90,7 @@ const UserController = {
                     position: formData.position ? formData.position : '',
                     isActive: formData.isActive ? formData.isActive : true,
                     createdAt: Date.now(),
-                    createdBy: formData.createdBy ? formData.createdBy : ''
+                    createdBy: req.username ? req.username : ''
                 }).save();
                 await User.updateOne(
                     { _id: newData._id }, 
@@ -114,7 +114,35 @@ const UserController = {
     getById: async(req, res) => {
         try{
             const data = await User.findById(req.params.id);
-            return res.status(200).json({ success: true, data: data });
+            if(data) {
+                var newData = {
+                    _id: data._id,
+                    username: data.username,
+                    code: data.code,
+                    name: data.name, 
+                    physicalId: data.physicalId,
+                    dateOfIssue: data.dateOfIssue,
+                    placeOfIssue: data.placeOfIssue,
+                    email: data.email,
+                    phone: data.phone,
+                    birthday: data.birthday,
+                    gender: data.gender,
+                    address: {
+                        "building": data.address.building,
+                        "wardId": parseInt(data.address.wardId, 10),
+                        "districtId": parseInt(data.address.districtId, 10),
+                        "provinceId": parseInt(data.address.provinceId, 10),
+                    },
+                    img: data.img,
+                    imageFile: null,
+                    accessId: data.accessId,
+                    isActive: data.isActive,
+                };
+                return res.status(200).json({ success: true, data: newData });
+            }
+            else{
+                return res.status(400).json({success: false, error: 'Không có thông tin người dùng'});
+            }
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
@@ -131,14 +159,6 @@ const UserController = {
             //CMND/CCCD
             if(formData.physicalId == null || formData.physicalId == '') {
                 return res.status(200).json({ success: false, error: "Hãy nhập CMND/CCCD" });
-            }
-            //username
-            if(formData.username == null || formData.username == '') {
-                return res.status(200).json({ success: false, error: "Hãy nhập tên tài khoản" });
-            }
-            //password
-            if(formData.password == null || formData.password == '') {
-                return res.status(200).json({ success: false, error: "Hãy nhập mật khẩu" });
             }
             //Số điện thoại
             if(formData.phone == null || formData.phone == '') {
@@ -200,7 +220,7 @@ const UserController = {
                         position: formData.position ? formData.position : '',
                         isActive: formData.isActive ? formData.isActive : true,
                         updatedAt: Date.now(),
-                        updatedBy: formData.updatedBy ? formData.updatedBy : ''
+                        updatedBy: req.username ? req.username : ''
                     }
                 }
             );
@@ -216,7 +236,7 @@ const UserController = {
             var filters = req.body.filters;
             var sorts = new Map([req.body.sorts.split("&&")]);
             var pages = req.body.pages;
-
+            console.log(req.username)
             var data = await User.find({
                 $and: [
                     { code: { $regex: filters.codeF, $options:"i" } },

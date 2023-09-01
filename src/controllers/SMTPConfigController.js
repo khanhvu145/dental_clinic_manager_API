@@ -31,7 +31,7 @@ const SMTPConfigController = {
                 host: formData.host,
                 isActive: formData.isActive,
                 createdAt: Date.now(),
-                createdBy: formData.createdBy ? formData.createdBy : ''
+                createdBy: req.username ? req.username : ''
             });
 
             const data = await newData.save();

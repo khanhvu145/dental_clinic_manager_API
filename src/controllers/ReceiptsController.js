@@ -219,7 +219,7 @@ const ReceiptsController = {
             }
             //#endregion
             //#region Xử lý
-            var result = await Receipts.cancelReceipts(formData.id, formData.cancelReason, formData.cancelledBy);
+            var result = await Receipts.cancelReceipts(formData.id, formData.cancelReason, req.username);
             if(result && result.code <= 0){
                 return res.status(200).json({ success: false, error: result.error });
             }

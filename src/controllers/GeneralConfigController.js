@@ -17,7 +17,7 @@ const GeneralConfigController = {
                                 color: item.color ? item.color : '',
                                 isActive: item.isActive,
                                 updatedAt: Date.now(),
-                                updatedBy: item.createdBy ? item.createdBy : ''
+                                updatedBy: req.username ? req.username : ''
                             }
                         }
                     );
@@ -29,7 +29,7 @@ const GeneralConfigController = {
                         color: item.color ? item.color : '',
                         isActive: item.isActive,
                         createdAt: Date.now(),
-                        createdBy: item.createdBy ? item.createdBy : ''
+                        createdBy: req.username ? req.username : ''
                     });
                     await newItem.save();
                 }

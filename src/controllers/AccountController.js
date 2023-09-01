@@ -25,21 +25,8 @@ const AccountController = {
                 _id: user._id,
                 username: user.username,
                 name: user.name, 
-                physicalId: user.physicalId,
-                dateOfIssue: user.dateOfIssue,
-                placeOfIssue: user.placeOfIssue,
-                email: user.email,
                 phone: user.phone,
-                birthday: user.birthday,
-                gender: user.gender,
-                "address.building": user.address.building,
-                "address.wardId": parseInt(user.address.wardId, 10),
-                "address.districtId": parseInt(user.address.districtId, 10),
-                "address.provinceId": parseInt(user.address.provinceId, 10),
                 img: user.img,
-                imageFile: null,
-                accessId: user.accessId,
-                isActive: user.isActive,
             };
             var token = jwt.sign({data}, 'secretKey');
 
@@ -56,11 +43,16 @@ const AccountController = {
     info: async (req, res) => {
         try{
             var data = await jwt.verify(req.token, 'secretKey');
-            const accessesGroup = await AccessGroup.findById(data.data.accessId);
-            var accesses = accessesGroup.accesses;
-            data.data.accesses = (accesses.length > 0) ? accesses : [];
-
-            return res.status(200).json({ success: true, data: data });
+            const user = await User.findById(data.data._id);
+            if(user != null){
+                const accessesGroup = await AccessGroup.findById(user.accessId);
+                var accesses = accessesGroup.accesses;
+                data.data.accesses = (accesses.length > 0) ? accesses : [];
+                return res.status(200).json({ success: true, data: data });
+            }
+            else{
+                return res.status(400).json({success: false, error: 'Không có thông tin người dùng'});
+            }
         }catch(err){
             return res.status(400).json({success: false, error: err});
         }

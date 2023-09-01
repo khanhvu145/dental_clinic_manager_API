@@ -27,7 +27,7 @@ const ServiceController = {
                     description: formData.description ? formData.description : '', 
                     isActive: formData.isActive,
                     createdAt: Date.now(),
-                    createdBy: formData.createdBy ? formData.createdBy : ''
+                    createdBy: req.username ? req.username : ''
                 });
                 const data = await newService.save();
                 return res.status(200).json({ success: true, message: 'Tạo thành công', data: data });
@@ -116,7 +116,7 @@ const ServiceController = {
                         description: formData.description ? formData.description : '', 
                         isActive: formData.isActive,
                         updatedAt: Date.now(),
-                        updatedBy: formData.updatedBy ? formData.updatedBy : ''
+                        updatedBy: req.username ? req.username : ''
                     }
                 }
             );
@@ -146,7 +146,7 @@ const ServiceController = {
                     description: formData.description ? formData.description : '', 
                     isActive: formData.isActive,
                     createdAt: Date.now(),
-                    createdBy: formData.createdBy ? formData.createdBy : ''
+                    createdBy: req.username ? req.username : ''
                 });
                 const data = await newServiceGroup.save();
                 return res.status(200).json({ success: true, message: 'Tạo thành công', data: data });
@@ -227,7 +227,7 @@ const ServiceController = {
                         description: formData.description ? formData.description : '', 
                         isActive: formData.isActive,
                         updatedAt: Date.now(),
-                        updatedBy: formData.updatedBy ? formData.updatedBy : ''
+                        updatedBy: req.username ? req.username : ''
                     }
                 }
             );

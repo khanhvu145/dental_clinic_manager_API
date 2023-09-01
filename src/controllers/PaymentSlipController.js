@@ -72,7 +72,7 @@ const PaymentSlipController = {
             payment.receivingUnit = formData.receivingUnit;
             payment.addressUnit = formData.addressUnit;
             payment.originalDocuments = formData.originalDocuments || [];
-            payment.createdBy = formData.createdBy ? formData.createdBy : '';
+            payment.createdBy = req.username ? req.username : '';
             //Xử lý
             const data = await PaymentSlip.createPaymentSlip(payment);
 
@@ -115,7 +115,7 @@ const PaymentSlipController = {
                         status: 'completed',
                         date: formData.date || new Date(),
                         updatedAt: new Date(),
-                        updatedBy: formData.updatedBy
+                        updatedBy: req.username ? req.username : ''
                     }
                 }
             );
@@ -145,7 +145,7 @@ const PaymentSlipController = {
                     $set: { 
                         originalDocuments: formData.originalDocuments,
                         updatedAt: new Date(),
-                        updatedBy: formData.updatedBy
+                        updatedBy: req.username ? req.username : ''
                     }
                 }
             );

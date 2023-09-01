@@ -1,4 +1,8 @@
 const AccessGroup = require('../models/tw_AccessGroup');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+dotenv.config();
+const ADMIN_ACCESS_ID = process.env.ADMIN_ACCESS_ID;
 
 const AccessGroupController = {
     create: async(req, res) => {
@@ -20,7 +24,7 @@ const AccessGroupController = {
                     accesses: formData.accesses ? formData.accesses : [],
                     isActive: formData.isActive,
                     createdAt: Date.now(),
-                    createdBy: formData.createdBy ? formData.createdBy : ''
+                    createdBy: req.username ? req.username : ''
                 });
                 const data = await newAccessGroup.save();
                 return res.status(200).json({ success: true, message: 'Tạo thành công', data: data });
@@ -57,6 +61,10 @@ const AccessGroupController = {
             if(exist == null) {
                 return res.status(200).json({ success: false, error: "Nhóm người dùng không tồn tại" });
             }
+            /** Không cho phép chỉnh sửa quyền admin */
+            if(mongoose.Types.ObjectId(formData._id).equals(mongoose.Types.ObjectId(ADMIN_ACCESS_ID))){
+                return res.status(200).json({ success: false, error: "Không cho phép chỉnh sửa quyền Administrator mặc định." });
+            }
             //Xử lý
             await AccessGroup.updateOne(
                 { _id: formData._id }, 
@@ -67,7 +75,7 @@ const AccessGroupController = {
                         accesses: formData.accesses ? formData.accesses : [],
                         isActive: formData.isActive,
                         updatedAt: Date.now(),
-                        updatedBy: formData.updatedBy ? formData.updatedBy : ''
+                        updatedBy: req.username ? req.username : ''
                     }
                 }
             );
