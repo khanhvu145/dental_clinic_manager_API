@@ -63,8 +63,12 @@ const tw_User = new Schema({
         required: true,
         ref: "tw_AccessGroup"
     },
-    position: {
-        type: String,
+    // position: {
+    //     type: String,
+    // },
+    isDentist: {
+        type: Boolean,
+        default: false
     },
     isActive: {
         type: Boolean,

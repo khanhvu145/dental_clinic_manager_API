@@ -233,6 +233,44 @@ const CustomerController = {
             return res.status(400).json({ success: false, error: err });
         }
     },
+    getByTextSearch: async(req, res) => {
+        try{
+            var filters = req.body.filters;
+            var sorts = new Map([req.body.sorts.split("&&")]);
+            var pages = req.body.pages;
+
+            var data = await Customer.find({
+                $and: [
+                    {
+                        $or: [
+                            { name: { $regex: filters.textSearch, $options:"i" } },
+                            { phone: { $regex: filters.textSearch, $options:"i" } },
+                            { code: { $regex: filters.textSearch, $options:"i" } },
+                        ]
+                    },
+                    { isActive: true },
+                ]
+            }).sort(sorts).limit(pages.size).skip(pages.from);
+
+            var total = await Customer.find({
+                $and: [
+                    {
+                        $or: [
+                            { name: { $regex: filters.textSearch, $options:"i" } },
+                            { phone: { $regex: filters.textSearch, $options:"i" } },
+                            { code: { $regex: filters.textSearch, $options:"i" } },
+                        ]
+                    },
+                    { isActive: true },
+                ]
+            }).count();
+
+            return res.status(200).json({ success: true, data: data, total: total });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
     getById: async(req, res) => {
         try{
             const data = await Customer.findById(req.params.id);

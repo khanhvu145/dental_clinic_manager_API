@@ -9,5 +9,6 @@ router.put('/update', GetAccessToken('users', 'update'), multer.single('imageFil
 router.get('/getById/:id/', userController.getById);
 router.post('/getByQuery', GetAccessToken('users', 'view'), userController.getByQuery);
 router.get('/getDentist', userController.getDentist);
+router.post('/getDentistByQuery', userController.getDentistByQuery);
 
 module.exports = router;

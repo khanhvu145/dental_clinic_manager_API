@@ -87,7 +87,8 @@ const UserController = {
                     img: formData.img ? formData.img : '',
                     imageFile: null,
                     accessId: formData.accessId,
-                    position: formData.position ? formData.position : '',
+                    // position: formData.position ? formData.position : '',
+                    isDentist: formData.isDentist,
                     isActive: formData.isActive ? formData.isActive : true,
                     createdAt: Date.now(),
                     createdBy: req.username ? req.username : ''
@@ -133,9 +134,11 @@ const UserController = {
                         "districtId": parseInt(data.address.districtId, 10),
                         "provinceId": parseInt(data.address.provinceId, 10),
                     },
+                    // position: data.position,
                     img: data.img,
                     imageFile: null,
                     accessId: data.accessId,
+                    isDentist: data.isDentist,
                     isActive: data.isActive,
                 };
                 return res.status(200).json({ success: true, data: newData });
@@ -217,7 +220,8 @@ const UserController = {
                         img: formData.img ? formData.img : '',
                         imageFile: null,
                         accessId: formData.accessId,
-                        position: formData.position ? formData.position : '',
+                        // position: formData.position ? formData.position : '',
+                        isDentist: formData.isDentist,
                         isActive: formData.isActive ? formData.isActive : true,
                         updatedAt: Date.now(),
                         updatedBy: req.username ? req.username : ''
@@ -236,7 +240,7 @@ const UserController = {
             var filters = req.body.filters;
             var sorts = new Map([req.body.sorts.split("&&")]);
             var pages = req.body.pages;
-            console.log(req.username)
+
             var data = await User.find({
                 $and: [
                     { code: { $regex: filters.codeF, $options:"i" } },
@@ -263,8 +267,44 @@ const UserController = {
     },
     getDentist: async(req, res) => {
         try{
-            var data = await User.find({ isActive: true, position: 'dentist' });
+            var data = await User.find({ isActive: true, isDentist: true });
             return res.status(200).json({ success: true, data: data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getDentistByQuery: async(req, res) => {
+        try{
+            var filters = req.body.filters;
+            var sorts = new Map([req.body.sorts.split("&&")]);
+            var pages = req.body.pages;
+            var data = await User.find({
+                $and: [
+                    {
+                        $or: [
+                            { name: { $regex: filters.textSearch, $options:"i" } },
+                            { code: { $regex: filters.textSearch, $options:"i" } },
+                        ]
+                    },
+                    { isDentist: true },
+                    { isActive: true }
+                ]
+            }).sort(sorts).limit(pages.size).skip(pages.from);
+            var total = await User.find({
+                $and: [
+                    {
+                        $or: [
+                            { name: { $regex: filters.textSearch, $options:"i" } },
+                            { code: { $regex: filters.textSearch, $options:"i" } },
+                        ]
+                    },
+                    { isDentist: true },
+                    { isActive: true }
+                ]
+            }).count();
+
+            return res.status(200).json({ success: true, data: data, total: total });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
