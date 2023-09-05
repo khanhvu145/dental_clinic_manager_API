@@ -23,6 +23,7 @@ const paymentSlipRoute = require('./routes/paymentSlip');
 const receiptsRoute = require('./routes/receipts');
 const reportRoute = require('./routes/report');
 const informationConfigRoute = require('./routes/informationConfig');
+const appointmentBookingRoute = require('./routes/appointmentBooking');
 
 //CONNECT DATABASE
 dotenv.config();
@@ -54,6 +55,7 @@ app.use('/api/paymentSlip', paymentSlipRoute);
 app.use('/api/receipts', receiptsRoute);
 app.use('/api/report', reportRoute);
 app.use('/api/informationConfig', informationConfigRoute);
+app.use('/api/appointmentBooking', appointmentBookingRoute);
 
 app.get("/", (req, res) => {
     res.json({ message: "THIS IS API FOR DENTAL CLINIC MANAGER WEB" });
