@@ -19,6 +19,7 @@
   "homepage": "https://github.com/khanhvu145/dental_clinic_manager_API#readme",
   "dependencies": {
     "@types/node": "^18.0.5",
+    "axios": "^1.5.0",
     "bcrypt": "^5.0.1",
     "body-parser": "^1.20.0",
     "buffer": "^6.0.3",
@@ -39,6 +40,7 @@
     "mongoose-delete": "^0.5.4",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
+    "node-schedule": "^2.1.1",
     "nodemailer": "^6.9.1",
     "nodemon": "^2.0.16",
     "path": "^0.12.7",

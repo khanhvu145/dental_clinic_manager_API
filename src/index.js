@@ -24,6 +24,10 @@ const receiptsRoute = require('./routes/receipts');
 const reportRoute = require('./routes/report');
 const informationConfigRoute = require('./routes/informationConfig');
 const appointmentBookingRoute = require('./routes/appointmentBooking');
+const schedule = require('node-schedule');
+const axios = require('axios');
+const models = require('./models/tw_Appointment_Booking');
+const Appointment = models.AppointmentModel;
 
 //CONNECT DATABASE
 dotenv.config();
@@ -66,3 +70,10 @@ httpServer.listen(process.env.PORT || 8000, () => {
     const port = process.env.PORT || 8000;
     console.log(`Server Started at ${port}`)
 })
+
+// Job lịch hẹn
+const job = schedule.scheduleJob('0 0 * * *', async function(){
+    console.log('Start job updateStatusToNoArrivedJob')
+    const BACKEND_API_URL = process.env.BACKEND_API_URL;
+    await axios.post(`${BACKEND_API_URL}/api/appointmentBooking/updateStatusToNoArrivedJob`);
+});
