@@ -6,6 +6,7 @@ const tw_Customer = require('../models/tw_Customer');
 const Customer = tw_Customer.CustomerModel;
 const CustomerLog = tw_Customer.CustomerLogModel;
 const mongoose = require('mongoose');
+const moment = require('moment');
 
 const AppointmentBookingController = {
     create: async(req, res) => {
@@ -174,6 +175,132 @@ const AppointmentBookingController = {
             ]);
 
             return res.status(200).json({ success: true, data: data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getByQuery: async(req, res) => {
+        try{
+            var filters = req.body.filters;
+            var sorts = req.body.sorts.split("&&");
+            var pages = req.body.pages;
+            var listDentistId = filters.dentistsF.map(x => mongoose.Types.ObjectId(x));
+            var dateFromF = null;
+            var dateToF = null;
+            if(filters.dateF != null && filters.dateF != '' && filters.dateF.length > 0){
+                dateFromF = new Date(moment(filters.dateF[0]).format('YYYY/MM/DD'));
+                dateToF = new Date(moment(filters.dateF[1]).format('YYYY/MM/DD'));
+            }
+            var data = await Appointment.aggregate([
+                { $lookup: {
+                    from: "tw_users",
+                    localField: "dentistId",
+                    foreignField: "_id",
+                    as: "dentistInfo"
+                }},
+                {
+                    $addFields: {
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
+                        "dentistPhone": { $arrayElemAt: ["$dentistInfo.phone", 0] },
+                        "dentistCode": { $arrayElemAt: ["$dentistInfo.code", 0] }
+                    }
+                },
+                { $project: { 
+                    dentistInfo: 0
+                }},
+                { $match: { 
+                    $and: [
+                        { code: { $regex: filters.codeF, $options:"i" } },
+                        { $or: [
+                                { 'mainCustomer.name': { $regex: filters.customersF, $options:"i" } },
+                                { 'mainCustomer.phone': { $regex: filters.customersF, $options:"i" } },
+                                { 'mainCustomer.physicalId': { $regex: filters.customersF, $options:"i" } },
+                                { 'mainCustomer.code': { $regex: filters.customersF, $options:"i" } },
+                            ] 
+                        },
+                        dateFromF ? { date: { $gte: dateFromF } } : {},
+                        dateToF ? { date: { $lte: dateToF } } : {},
+                        (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
+                            dentistId: { $in: listDentistId }
+                        } : {},
+                        (filters.statusF.length > 0 && filters.statusF != null) ? { 
+                            status: { $in: filters.statusF }
+                        } : {},
+                    ]
+                }},
+                { $sort: sorts[0] == 'dateTimeFrom' ? { dateTimeFrom: Number(sorts[1]) } : { createdAt: Number(sorts[1]) }},
+                { $limit: (pages.from + pages.size) },
+                { $skip: pages.from }
+            ]);
+            var total = await Appointment.aggregate([
+                { $lookup: {
+                    from: "tw_users",
+                    localField: "dentistId",
+                    foreignField: "_id",
+                    as: "dentistInfo"
+                }},
+                {
+                    $addFields: {
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
+                        "dentistPhone": { $arrayElemAt: ["$dentistInfo.phone", 0] },
+                        "dentistCode": { $arrayElemAt: ["$dentistInfo.code", 0] },
+                    }
+                },
+                { $project: { 
+                    dentistInfo: 0
+                }},
+                { $match: { 
+                    $and: [
+                        { code: { $regex: filters.codeF, $options:"i" } },
+                        { $or: [
+                                { 'mainCustomer.name': { $regex: filters.customersF, $options:"i" } },
+                                { 'mainCustomer.phone': { $regex: filters.customersF, $options:"i" } },
+                                { 'mainCustomer.physicalId': { $regex: filters.customersF, $options:"i" } },
+                                { 'mainCustomer.code': { $regex: filters.customersF, $options:"i" } },
+                            ] 
+                        },
+                        dateFromF ? { date: { $gte: dateFromF } } : {},
+                        dateToF ? { date: { $lte: dateToF } } : {},
+                        (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
+                            dentistId: { $in: listDentistId }
+                        } : {},
+                        (filters.statusF.length > 0 && filters.statusF != null) ? { 
+                            status: { $in: filters.statusF }
+                        } : {},
+                    ]
+                }},
+                { $count: "count" }
+            ]);
+
+            return res.status(200).json({ success: true, data: data, total: total.length > 0 ? total[0].count : 0 });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getById: async(req, res) => {
+        try{
+            var data = await Appointment.aggregate([
+                { $lookup: {
+                    from: "tw_users",
+                    localField: "dentistId",
+                    foreignField: "_id",
+                    as: "dentistInfo"
+                }},
+                {
+                    $addFields: {
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
+                        "dentistPhone": { $arrayElemAt: ["$dentistInfo.phone", 0] },
+                        "dentistCode": { $arrayElemAt: ["$dentistInfo.code", 0] },
+                    }
+                },
+                { $project: { 
+                    dentistInfo: 0
+                }},
+                { $match: { _id: mongoose.Types.ObjectId(req.body.id) } }
+            ]);
+            return res.status(200).json({ success: true, data: data && data.length > 0 ? data[0] : new Appointment() });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
