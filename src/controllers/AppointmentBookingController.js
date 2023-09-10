@@ -1,12 +1,20 @@
 const { forEach } = require('lodash');
 const models = require('../models/tw_Appointment_Booking');
 const Appointment = models.AppointmentModel;
-// const AppointmentLog = models.AppointmentLogModel;
+const AppointmentLog = models.AppointmentLogModel;
 const tw_Customer = require('../models/tw_Customer');
 const Customer = tw_Customer.CustomerModel;
 const CustomerLog = tw_Customer.CustomerLogModel;
+const GeneralConfig = require('../models/tw_GeneralConfig');
+const User = require('../models/tw_User');
 const mongoose = require('mongoose');
 const moment = require('moment');
+const sendMail = require('../helpers/sendMail');
+const path = require('path');
+const fs = require('fs');
+const IsNullOrEmpty = require('../helpers/IsNullOrEmpty');
+const convertDateToCron = require('../helpers/convertDateToCron');
+const CronJob = require('cron').CronJob;
 
 const AppointmentBookingController = {
     create: async(req, res) => {
@@ -62,7 +70,7 @@ const AppointmentBookingController = {
                     return res.status(200).json({ success: false, error: "Có lỗi xảy ra trong quá trình đặt lịch hẹn" });
                 }
             }
-            //#region 
+            //#endregion 
 
             //#region Xử lý
             //Chuẩn hóa data
@@ -80,17 +88,13 @@ const AppointmentBookingController = {
                 fullAddress: formData.mainCustomer.fullAddress
             }
             formData.mainCustomer = customerBooking;
-            console.log('0')
             var data = await Appointment.createBooking(formData, req.username);
-            console.log(data)
             if(data.code <= 0){
                 return res.status(200).json({ success: false, error: data.error });
             }
             //#endregion
-            console.log('1')
             //#region Log khách hàng
             if(data && data.data){
-                console.log('2')
                 var log = [];
                 var item = {
                     column: 'Đặt hẹn',
@@ -98,10 +102,9 @@ const AppointmentBookingController = {
                     newvalue: data.data.code || ''
                 };
                 log.push(item);
-                await CustomerLog.CreateLog(data.data.mainCustomer._id, 'booking', log, 'create', formData.createdBy);
+                await CustomerLog.CreateLog(data.data.mainCustomer._id, 'booking', log, 'create', req.username);
             }
             //#endregion
-            console.log('3')
 
             return res.status(200).json({ success: true, message: 'Đặt hẹn thành công', data: data.data, checkCanBook: checkCanBook });
         }
@@ -168,7 +171,7 @@ const AppointmentBookingController = {
                             dentistId: { $in: listDentistId }
                         } : {},
                         (formData.currentId != null && formData.currentId != '') ? { 
-                            _id: { $ne: formData.currentId }
+                            _id: { $ne: mongoose.Types.ObjectId(formData.currentId) }
                         } : {}
                     ]
                 }}
@@ -301,6 +304,359 @@ const AppointmentBookingController = {
                 { $match: { _id: mongoose.Types.ObjectId(req.body.id) } }
             ]);
             return res.status(200).json({ success: true, data: data && data.length > 0 ? data[0] : new Appointment() });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    update: async(req, res) => {
+        try{
+            var formData = req.body;
+            //#region Kiểm tra đầu vào
+            // Kiểm tra tồn tại
+            const exist = await Appointment.findById(formData._id);
+            if(exist == null) {
+                return res.status(200).json({ success: false, error: "Lịch hẹn không tồn tại" });
+            }
+            //Kiểm tra nha sĩ
+            if(formData.dentistId == null || formData.dentistId == '') {
+                return res.status(200).json({ success: false, error: "Hãy chọn nha sĩ phụ trách" });
+            }
+            //Kiểm tra thời gian
+            if(formData.date == null || formData.date == ''){
+                return res.status(200).json({ success: false, error: "Hãy chọn thời gian hẹn" });
+            }
+            if(formData.timeFrom == null || formData.timeFrom == ''){
+                return res.status(200).json({ success: false, error: "Hãy chọn thời gian hẹn" });
+            }
+            if(formData.timeTo == null || formData.timeTo == ''){
+                return res.status(200).json({ success: false, error: "Hãy chọn thời gian hẹn" });
+            }
+            //Nội dung
+            if(formData.content == null || formData.content == '') {
+                return res.status(200).json({ success: false, error: "Hãy chọn nội dung lịch hẹn" });
+            }
+            //#endregion
+
+            //#region Kiểm tra thời gian đặt hẹn
+            var checkCanBook = await Appointment.checkCanBook(formData, true);
+            if(checkCanBook < 1){
+                if(checkCanBook == -1){
+                    return res.status(200).json({ success: false, error: "Thời gian đặt hẹn không hợp lệ" });
+                }
+                else if(checkCanBook == -2){
+                    return res.status(200).json({ success: false, error: "Khoảng thời gian không hợp lệ" });
+                }
+                else if(checkCanBook == -3){
+                    return res.status(200).json({ success: false, error: "Thời gian đặt hẹn bị trùng" });
+                }
+                else if(checkCanBook == -4){
+                    return res.status(200).json({ success: false, error: "Thời gian đặt hẹn nằm ngoài thời gian làm việc" });
+                }
+                else{
+                    return res.status(200).json({ success: false, error: "Có lỗi xảy ra trong quá trình đặt lịch hẹn" });
+                }
+            }
+            //#endregion 
+
+            //#region Xử lý
+            var data = await Appointment.updateBooking(formData, exist, req.username);
+            if(data.code <= 0){
+                return res.status(200).json({ success: false, error: data.error });
+            }
+            //#endregion
+
+            //#region Log khách hàng
+            if(data && data.data){
+                var log = [];
+                var item = {
+                    column: 'Thay đổi lịch hẹn',
+                    oldvalue: '',
+                    newvalue: data.data.code || ''
+                };
+                log.push(item);
+                await CustomerLog.CreateLog(data.data.mainCustomer._id, 'booking', log, 'update', req.username);
+            }
+            //#endregion
+
+            return res.status(200).json({ success: true, message: 'Chỉnh sửa thành công', data: data.data, checkCanBook: checkCanBook });
+        }
+        catch{
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getLogs: async(req, res) => {
+        try{
+            const data = await AppointmentLog.find({ appointmentId: req.params.id }).sort({ createdAt: -1 });
+            return res.status(200).json({ success: true, data: data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    sendMail: async(req, res) => {
+        try{
+            var formData = req.body;
+            var successCount = 0;
+            var errorCount = 0;
+            var template = fs.readFileSync(path.join(__dirname, '/../content/emailTemplate/RemindEmailTemplate.html'),{encoding:'utf-8'});
+            if(formData.ids && formData.ids.length > 0){
+                for(var i = 0; i < formData.ids.length; i++){
+                    //#region Kiểm tra điều kiện
+                    const exist = await Appointment.findOne({ 
+                        _id: mongoose.Types.ObjectId(formData.ids[i]),
+                        status: 'new'
+                    });
+                    if(exist == null) {
+                        errorCount++;
+                        continue;
+                    }
+                    if(exist.mainCustomer == null || IsNullOrEmpty(exist.mainCustomer.email)) {
+                        errorCount++;
+                        continue;
+                    }
+                    //#endregion
+                    //#region Xử lý
+                    var dentistInfo =  await User.findById(exist.dentistId);
+                    var contentInfo =  await GeneralConfig.findById(exist.content);  
+                    if(template){
+                        template = template.replace('{customerName}', exist.mainCustomer != null ? exist.mainCustomer.name : '');
+                        template = template.replace('{code}', exist.code);
+                        template = template.replace('{date}', moment(exist.date).format('DD/MM/YYYY').toString());
+                        template = template.replace('{time}', `${exist.timeFrom} - ${exist.timeTo}`);
+                        template = template.replace('{dentistName}', dentistInfo != null ? dentistInfo.name : '');
+                        template = template.replace('{content}', contentInfo != null ? contentInfo.value : '');
+
+                        var timeRemind = new Date(moment().format('YYYY/MM/DD HH:mm:ss'));
+                        var expireTime = moment(timeRemind).add(10, 's')._d;
+                        var dateCronRemind = convertDateToCron(expireTime);
+                        var job = await new CronJob(
+                            dateCronRemind,
+                            async function(){
+                                await sendMail({ to: exist.mainCustomer.email, subject: 'THƯ NHẮC HẸN', body: template });
+                                //#region log
+                                var log = [];
+                                var item = {
+                                    column: 'Gửi lúc',
+                                    oldvalue: '',
+                                    newvalue: moment().format('DD/MM/YYYY hh:mm')
+                                };
+                                log.push(item);
+                                await AppointmentLog.CreateLog(exist._id, 'Gửi nhắc hẹn', log, req.username);
+                                //#endregion
+                            },
+                            null,
+                            true,
+                            'Asia/Ho_Chi_Minh'
+                        );
+                        await job.start();
+                        successCount++;
+                    }
+                    else{
+                        errorCount++;
+                        continue;
+                    }
+                    //#endregion
+                }
+                return res.status(200).json({ success: true, successCount: successCount, errorCount: errorCount });
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Có lỗi xảy ra" });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    confirmBooking: async(req, res) => {
+        try{
+            var formData = req.body;
+            var successCount = 0;
+            var errorCount = 0;
+            if(formData.ids && formData.ids.length > 0){
+                for(var i = 0; i < formData.ids.length; i++){
+                    const updated = await Appointment.updateOne(
+                        { 
+                            _id: mongoose.Types.ObjectId(formData.ids[i]),
+                            status: 'new'
+                        },
+                        {
+                            $set: {
+                                status: 'arrived',
+                                confirmAt: Date.now(),
+                                confirmBy: req.username,
+                                updatedAt: Date.now(),
+                                updatedBy: req.username
+                            }
+                        }
+                    );
+                    if(updated.modifiedCount > 0 && updated.acknowledged == true){
+                        var data = await Appointment.findById(formData.ids[i]);
+                        // Notify
+
+                        //Logs
+                        await AppointmentLog.CreateLog(data._id, 'Xác nhận đến khám', [], req.username);
+
+                        //#region Log khách hàng
+                        if(data){
+                            var log = [];
+                            var item = {
+                                column: 'Xác nhận đến khám',
+                                oldvalue: '',
+                                newvalue: data.code || ''
+                            };
+                            log.push(item);
+                            await CustomerLog.CreateLog(data.mainCustomer._id, 'booking', log, 'checkin', req.username);
+                        }
+                        //#endregion
+                        successCount++;
+                    }
+                    else{
+                        errorCount++;
+                        continue;
+                    }
+                }
+
+                return res.status(200).json({ success: true, successCount: successCount, errorCount: errorCount });
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Có lỗi xảy ra" });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    completeBooking: async(req, res) => {
+        try{
+            var formData = req.body;
+            var successCount = 0;
+            var errorCount = 0;
+            if(formData.ids && formData.ids.length > 0){
+                for(var i = 0; i < formData.ids.length; i++){
+                    const updated = await Appointment.updateOne(
+                        { 
+                            _id: mongoose.Types.ObjectId(formData.ids[i]),
+                            status: 'arrived'
+                        },
+                        {
+                            $set: {
+                                status: 'completed',
+                                completedAt: Date.now(),
+                                completedBy: req.username,
+                                updatedAt: Date.now(),
+                                updatedBy: req.username
+                            }
+                        }
+                    );
+                    if(updated.modifiedCount > 0 && updated.acknowledged == true){
+                        var data = await Appointment.findById(formData.ids[i]);
+                        // Notify
+
+                        //Logs
+                        await AppointmentLog.CreateLog(data._id, 'Hoàn thành lịch hẹn', [], req.username);
+
+                        //#region Log khách hàng
+                        if(data){
+                            var log = [];
+                            var item = {
+                                column: 'Hoàn thành lịch hẹn',
+                                oldvalue: '',
+                                newvalue: data.code || ''
+                            };
+                            log.push(item);
+                            await CustomerLog.CreateLog(data.mainCustomer._id, 'booking', log, 'completed', req.username);
+                        }
+                        //#endregion
+                        successCount++;
+                    }
+                    else{
+                        errorCount++;
+                        continue;
+                    }
+                }
+
+                return res.status(200).json({ success: true, successCount: successCount, errorCount: errorCount });
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Có lỗi xảy ra" });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    cancelBooking: async(req, res) => {
+        try{
+            var formData = req.body;
+            var successCount = 0;
+            var errorCount = 0;
+            if(formData.cancelReason == null || formData.cancelReason == ''){
+                return res.status(200).json({ success: false, error: "Hãy nhập lý do hủy" });
+            }
+            if(formData.ids && formData.ids.length > 0){
+                for(var i = 0; i < formData.ids.length; i++){
+                    const updated = await Appointment.updateOne(
+                        { 
+                            $and: [
+                                { _id: mongoose.Types.ObjectId(formData.ids[i]) },
+                                { $or: [
+                                        { status: 'new' },
+                                        { status: 'arrived' }
+                                    ] 
+                                }
+                            ]
+                        },
+                        {
+                            $set: {
+                                status: 'cancelled',
+                                cancelReason: formData.cancelReason,
+                                cancelledAt: Date.now(),
+                                cancelledBy: req.username,
+                                updatedAt: Date.now(),
+                                updatedBy: req.username
+                            }
+                        }
+                    );
+                    if(updated.modifiedCount > 0 && updated.acknowledged == true){
+                        var data = await Appointment.findById(formData.ids[i]);
+                        // Notify
+
+                        //Logs
+                        var log = [];
+                        var item = {
+                            column: 'Lý do',
+                            oldvalue: '',
+                            newvalue: formData.cancelReason || ''
+                        };
+                        log.push(item);
+                        await AppointmentLog.CreateLog(data._id, 'Hủy lịch hẹn', log, req.username);
+
+                        //#region Log khách hàng
+                        if(data){
+                            var log = [];
+                            var item = {
+                                column: 'Hủy lịch hẹn',
+                                oldvalue: '',
+                                newvalue: data.code || ''
+                            };
+                            log.push(item);
+                            await CustomerLog.CreateLog(data.mainCustomer._id, 'booking', log, 'cancel', req.username);
+                        }
+                        //#endregion
+                        successCount++;
+                    }
+                    else{
+                        errorCount++;
+                        continue;
+                    }
+                }
+
+                return res.status(200).json({ success: true, successCount: successCount, errorCount: errorCount });
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Có lỗi xảy ra" });
+            }
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });

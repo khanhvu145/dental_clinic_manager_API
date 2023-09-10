@@ -93,6 +93,30 @@ const tw_Appointment_Booking = new Schema({
     updatedBy: {
         type: String,
     },
+    jobAutoRemindId: {
+        type: String,
+    },
+    confirmAt: {
+        type: Date,
+    },
+    confirmBy: {
+        type: String,
+    },
+    completedAt: {
+        type: Date,
+    },
+    completedBy: {
+        type: String,
+    },
+    cancelledAt: {
+        type: Date,
+    },
+    cancelledBy: {
+        type: String,
+    },
+    cancelReason: {
+        type: String,
+    },
 });
 
 tw_Appointment_Booking.plugin(mongooseDelete, { 
@@ -255,16 +279,25 @@ tw_Appointment_Booking.statics.createBooking = async function(formData, username
 
                     if(expireTime != null){
                         var dateCronAutoRemind = convertDateToCron(expireTime);
+                        var jobId = `${moment().format('DDMMYYHHmmss')}-${moment(expireTime).format('DDMMYYHHmmss')}-${data._id}`;
                         var job = await new CronJob(
                             dateCronAutoRemind,
                             async function(){
                                 if(AUTO_REMIND_TYPE.value == 'email' || AUTO_REMIND_TYPE.value == 'smsEmail'){
-                                    await _this.sendMailAutoRemindBooking(data._id);
+                                    await _this.sendMailAutoRemindBooking(data._id, jobId);
                                 }
                             },
                             null,
                             true,
                             'Asia/Ho_Chi_Minh'
+                        );
+                        await _this.updateOne(
+                            { _id: data._id }, 
+                            {
+                                $set: { 
+                                    jobAutoRemindId: jobId
+                                }
+                            }
                         );
                         await job.start();
                     }
@@ -350,7 +383,7 @@ tw_Appointment_Booking.statics.createBooking = async function(formData, username
             return { code: 1, data: data, error: '' };
         }
         else{
-            return { code: -1, data: {}, error: 'Tạo booking không thành công' };
+            return { code: -1, data: {}, error: 'Đặt hẹn không thành công' };
         }
     }
     catch(err){
@@ -359,12 +392,177 @@ tw_Appointment_Booking.statics.createBooking = async function(formData, username
     }
 };
 
-tw_Appointment_Booking.statics.sendMailAutoRemindBooking = async function(id) {
+tw_Appointment_Booking.statics.updateBooking = async function(formData, exist, username){
+    try{
+        const _this = this;
+        const updated = await _this.updateOne(
+            { _id: formData._id }, 
+            {
+                $set: { 
+                    dentistId: formData.dentistId, 
+                    date: formData.date, 
+                    timeFrom: formData.timeFrom, 
+                    timeTo: formData.timeTo, 
+                    dateTimeFrom: new Date(moment(formData.date).format('YYYY/MM/DD') + ' ' + formData.timeFrom), 
+                    dateTimeTo: new Date(moment(formData.date).format('YYYY/MM/DD') + ' ' + formData.timeTo), 
+                    session: formData.session, 
+                    type: formData.type, 
+                    content: formData.content, 
+                    note: formData.note, 
+                    updatedAt: Date.now(),
+                    updatedBy: username
+                }
+            }
+        );
+        if(updated.modifiedCount > 0 && updated.acknowledged == true){
+            var data = await _this.findById(formData._id);
+            if(data){
+                //#region Nhắc hẹn tự động
+                // Lấy các cấu hình
+                const AUTO_REMIND_APPLY = await AppointmentConfigs.findOne({ key: 'AUTO_REMIND_APPLY' });
+                const AUTO_REMIND_DURATION = await AppointmentConfigs.findOne({ key: 'AUTO_REMIND_DURATION' });
+                const AUTO_REMIND_DURATION_TYPE = await AppointmentConfigs.findOne({ key: 'AUTO_REMIND_DURATION_TYPE' });
+                const AUTO_REMIND_TIME = await AppointmentConfigs.findOne({ key: 'AUTO_REMIND_TIME' });
+                const AUTO_REMIND_TYPE = await AppointmentConfigs.findOne({ key: 'AUTO_REMIND_TYPE' });
+                if(AUTO_REMIND_APPLY && AUTO_REMIND_DURATION && AUTO_REMIND_DURATION_TYPE && AUTO_REMIND_TIME && AUTO_REMIND_TYPE){
+                    if(AUTO_REMIND_APPLY.value == 'on') {
+                        var expireTime = null;
+                        if(AUTO_REMIND_DURATION_TYPE.value == 'day'){
+                            var timeAutoRemind = new Date(moment(data.date).format('YYYY/MM/DD') + ' ' + AUTO_REMIND_TIME.value);
+                            expireTime = moment(timeAutoRemind).subtract(AUTO_REMIND_DURATION.value, 'd')._d;
+                        }
+                        else if(AUTO_REMIND_DURATION_TYPE.value == 'hour'){
+                            var timeAutoRemind = new Date(moment(data.date).format('YYYY/MM/DD') + ' ' + data.timeFrom);
+                            expireTime = moment(timeAutoRemind).subtract(AUTO_REMIND_DURATION.value, 'h')._d;
+                        }
+                        else if(AUTO_REMIND_DURATION_TYPE.value == 'minute'){
+                            var timeAutoRemind = new Date(moment(data.date).format('YYYY/MM/DD') + ' ' + data.timeFrom);
+                            expireTime = moment(timeAutoRemind).subtract(AUTO_REMIND_DURATION.value, 'm')._d;
+                        }
+
+                        if(expireTime != null){
+                            var dateCronAutoRemind = convertDateToCron(expireTime);
+                            var jobId = `${moment().format('DDMMYYHHmmss')}-${moment(expireTime).format('DDMMYYHHmmss')}-${data._id}`;
+                            var job = await new CronJob(
+                                dateCronAutoRemind,
+                                async function(){
+                                    if(AUTO_REMIND_TYPE.value == 'email' || AUTO_REMIND_TYPE.value == 'smsEmail'){
+                                        await _this.sendMailAutoRemindBooking(data._id, jobId);
+                                    }
+                                },
+                                null,
+                                true,
+                                'Asia/Ho_Chi_Minh'
+                            );
+                            await _this.updateOne(
+                                { _id: data._id }, 
+                                {
+                                    $set: { 
+                                        jobAutoRemindId: jobId
+                                    }
+                                }
+                            );
+                            await job.start();
+                        }
+                    }
+                }
+                //#endregion
+
+                //#region Log
+                var log = [];
+                var isUpdate = false;
+                if(!exist.dentistId.equals(data.dentistId)){
+                    const newValue = await User.findById(data.dentistId);
+                    const oldValue = await User.findById(exist.dentistId);
+                    isUpdate = true;
+                    var item = {
+                        column: 'Nha sĩ phụ trách',
+                        oldvalue: oldValue.name || '',
+                        newvalue: newValue.name || ''
+                    };
+                    log.push(item);
+                }
+                if(moment(data.date).format('YYYY/MM/DD') != moment(exist.date).format('YYYY/MM/DD')){
+                    isUpdate = true;
+                    var item = {
+                        column: 'Ngày hẹn',
+                        oldvalue: moment(exist.date).format('DD/MM/YYYY'),
+                        newvalue: moment(data.date).format('DD/MM/YYYY')
+                    };
+                    log.push(item);
+                }
+                if(data.timeFrom != exist.timeFrom || data.timeTo != exist.timeTo){
+                    isUpdate = true;
+                    var item = {
+                        column: 'Thời gian',
+                        oldvalue: `${exist.timeFrom} - ${exist.timeTo}`,
+                        newvalue: `${data.timeFrom} - ${data.timeTo}`
+                    };
+                    log.push(item);
+                }
+                if(!exist.content.equals(data.content)){
+                    const GeneralConfigData = await GeneralConfig.find({
+                        $and: [
+                            { type: { $regex: 'appointment_content', $options:"i" } }
+                        ]
+                    });
+                    isUpdate = true;
+                    var item = {
+                        column: 'Nội dung',
+                        oldvalue: GeneralConfigData.find(x => x._id.equals(exist.content)) ? GeneralConfigData.find(x => x._id.equals(exist.content)).value : '',
+                        newvalue: GeneralConfigData.find(x => x._id.equals(data.content)) ? GeneralConfigData.find(x => x._id.equals(data.content)).value : ''
+                    };
+                    log.push(item);
+                }
+                if(!exist.type.equals(data.type)){
+                    const GeneralConfigData = await GeneralConfig.find({
+                        $and: [
+                            { type: { $regex: 'appointment_type', $options:"i" } }
+                        ]
+                    });
+                    isUpdate = true;
+                    var item = {
+                        column: 'Loại lịch hẹn',
+                        oldvalue: GeneralConfigData.find(x => x._id.equals(exist.type)) ? GeneralConfigData.find(x => x._id.equals(exist.type)).value : '',
+                        newvalue: GeneralConfigData.find(x => x._id.equals(data.type)) ? GeneralConfigData.find(x => x._id.equals(data.type)).value : ''
+                    };
+                    log.push(item);
+                }
+                if(exist.note != data.note) {
+                    isUpdate = true;
+                    var item = {
+                        column: 'Ghi chú',
+                        oldvalue: exist.note,
+                        newvalue: data.note
+                    };
+                    log.push(item);
+                }
+                if (isUpdate)
+                {
+                    await AppointmentLogModel.CreateLog(data._id, 'update', log, username);
+                }
+                //#endregion
+
+                return { code: 1, data: data, error: '' };
+            }
+        }
+        else{
+            return { code: -1, data: {}, error: 'Chỉnh sửa lịch hẹn không thành công' };
+        }
+    }
+    catch(err){
+        console.log(err);
+        return { code: 0, data: {}, error: err };
+    }
+};
+
+tw_Appointment_Booking.statics.sendMailAutoRemindBooking = async function(id, jobId) {
     try{
         var existBooking = await this.findById(id);
         if(existBooking == null) return;
         if(existBooking.status != 'new') return;
         if(existBooking.mainCustomer == null) return;
+        if(existBooking.jobAutoRemindId != jobId) return;
     
         var dentistInfo =  await User.findById(existBooking.dentistId);
         var contentInfo =  await GeneralConfig.findById(existBooking.content);
@@ -381,6 +579,16 @@ tw_Appointment_Booking.statics.sendMailAutoRemindBooking = async function(id) {
     
         if(existBooking.mainCustomer != null && !IsNullOrEmpty(existBooking.mainCustomer.email)) {
             await sendMail({ to: existBooking.mainCustomer.email, subject: 'THƯ NHẮC HẸN', body: template });
+            //#region log
+            var log = [];
+            var item = {
+                column: 'Gửi lúc',
+                oldvalue: '',
+                newvalue: moment().format('DD/MM/YYYY hh:mm')
+            };
+            log.push(item);
+            await AppointmentLog.CreateLog(existBooking._id, 'Gửi nhắc hẹn tự động', log, 'system');
+            //#endregion
         }
         //#endregion
     }

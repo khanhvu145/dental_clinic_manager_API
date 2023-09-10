@@ -109,7 +109,6 @@ const tw_Customer_Log = new Schema({
 });
 
 tw_Customer_Log.statics.CreateLog = async function (customerId, type, note, action, currentUser){
-    console.log('step 8')
     var log = {};
     log.customerId = customerId;
     log.type = type;
@@ -117,15 +116,12 @@ tw_Customer_Log.statics.CreateLog = async function (customerId, type, note, acti
     log.action = action;
     log.createdBy = currentUser ? currentUser : 'System';
     log.createdAt = Date.now();
-    console.log('step 9')
     await this.create(log, function(err, result){
-        console.log('step 10')
         if(err) {
-            console.log('step 11', err)
+            console.log(err)
             return false;
         }
         else{
-            console.log('step 12')
             return true;
         }
     });
