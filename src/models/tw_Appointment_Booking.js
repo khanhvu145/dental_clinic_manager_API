@@ -305,6 +305,42 @@ tw_Appointment_Booking.statics.createBooking = async function(formData, username
             }
             //#endregion
 
+            //#region Gửi email thông báo KH
+            if(data.mainCustomer && !IsNullOrEmpty(data.mainCustomer.email)){
+                const NOTIFY_CREATE_APPOINTMENT = await AppointmentConfigs.findOne({ key: 'NOTIFY_CREATE_APPOINTMENT' });
+                if(NOTIFY_CREATE_APPOINTMENT && NOTIFY_CREATE_APPOINTMENT.value == 'yes'){
+                    var template = fs.readFileSync(path.join(__dirname, '/../content/emailTemplate/NotifyCreateAppointmentTemplate.html'),{encoding:'utf-8'});
+                    if(template){
+                        var dentistInfo =  await User.findById(data.dentistId);
+                        var contentInfo =  await GeneralConfig.findById(data.content); 
+                        template = template.replace(/{customerName}/g, data.mainCustomer != null ? data.mainCustomer?.name : '');
+                        template = template.replace(/{customerPhone}/g, data.mainCustomer != null ? data.mainCustomer?.phone : '');
+                        template = template.replace(/{customerPhysicalId}/g, data.mainCustomer != null ? data.mainCustomer?.physicalId : '');
+                        template = template.replace(/{code}/g, data.code);
+                        template = template.replace(/{date}/g, moment(data.date).format('DD/MM/YYYY').toString());
+                        template = template.replace(/{time}/g, `${data.timeFrom} - ${data.timeTo}`);
+                        template = template.replace(/{dentistName}/g, dentistInfo != null ? dentistInfo?.name : '');
+                        template = template.replace(/{content}/g, contentInfo != null ? contentInfo?.value : '');
+        
+                        var timeRemind = new Date(moment().format('YYYY/MM/DD HH:mm:ss'));
+                        var expireTime = moment(timeRemind).add(10, 's')._d;
+                        var dateCronRemind = convertDateToCron(expireTime);
+        
+                        var job2 = await new CronJob(
+                            dateCronRemind,
+                            async function(){
+                                await sendMail({ to: data.mainCustomer?.email, subject: 'ĐẶT HẸN THÀNH CÔNG', body: template });
+                            },
+                            null,
+                            true,
+                            'Asia/Ho_Chi_Minh'
+                        );
+                        await job2.start();
+                    }
+                }
+            }
+            //#endregion
+
             //#region Log
             var log = [];
             var isUpdate = false;
@@ -468,6 +504,47 @@ tw_Appointment_Booking.statics.updateBooking = async function(formData, exist, u
                 }
                 //#endregion
 
+                //#region Gửi email thông báo KH
+                if(
+                    moment(data.dateTimeFrom).format('YYYY/MM/DD HH:mm') != moment(exist.dateTimeFrom).format('YYYY/MM/DD HH:mm') ||
+                    moment(data.dateTimeTo).format('YYYY/MM/DD HH:mm') != moment(exist.dateTimeTo).format('YYYY/MM/DD HH:mm')
+                ){
+                    if(data.mainCustomer && !IsNullOrEmpty(data.mainCustomer.email)){
+                        const NOTIFY_UPDATE_APPOINTMENT = await AppointmentConfigs.findOne({ key: 'NOTIFY_UPDATE_APPOINTMENT' });
+                        if(NOTIFY_UPDATE_APPOINTMENT && NOTIFY_UPDATE_APPOINTMENT.value == 'yes'){
+                            var template = fs.readFileSync(path.join(__dirname, '/../content/emailTemplate/NotifyUpdateAppointmentTemplate.html'),{encoding:'utf-8'});
+                            if(template){
+                                var dentistInfo =  await User.findById(data.dentistId);
+                                var contentInfo =  await GeneralConfig.findById(data.content); 
+                                template = template.replace(/{customerName}/g, data.mainCustomer != null ? data.mainCustomer?.name : '');
+                                template = template.replace(/{customerPhone}/g, data.mainCustomer != null ? data.mainCustomer?.phone : '');
+                                template = template.replace(/{customerPhysicalId}/g, data.mainCustomer != null ? data.mainCustomer?.physicalId : '');
+                                template = template.replace(/{code}/g, data.code);
+                                template = template.replace(/{date}/g, moment(data.date).format('DD/MM/YYYY').toString());
+                                template = template.replace(/{time}/g, `${data.timeFrom} - ${data.timeTo}`);
+                                template = template.replace(/{dentistName}/g, dentistInfo != null ? dentistInfo?.name : '');
+                                template = template.replace(/{content}/g, contentInfo != null ? contentInfo?.value : '');
+                
+                                var timeRemind = new Date(moment().format('YYYY/MM/DD HH:mm:ss'));
+                                var expireTime = moment(timeRemind).add(10, 's')._d;
+                                var dateCronRemind = convertDateToCron(expireTime);
+                
+                                var job2 = await new CronJob(
+                                    dateCronRemind,
+                                    async function(){
+                                        await sendMail({ to: data.mainCustomer?.email, subject: 'CẬP NHẬT THỜI GIAN LỊCH HẸN', body: template });
+                                    },
+                                    null,
+                                    true,
+                                    'Asia/Ho_Chi_Minh'
+                                );
+                                await job2.start();
+                            }
+                        }
+                    }
+                }
+                //#endregion
+
                 //#region Log
                 var log = [];
                 var isUpdate = false;
@@ -570,12 +647,12 @@ tw_Appointment_Booking.statics.sendMailAutoRemindBooking = async function(id, jo
         var template = fs.readFileSync(path.join(__dirname, '/../content/emailTemplate/RemindEmailTemplate.html'),{encoding:'utf-8'});  
     
         //#region Replace value
-        template = template.replace('{customerName}', existBooking.mainCustomer != null ? existBooking.mainCustomer.name : '');
-        template = template.replace('{code}', existBooking.code);
-        template = template.replace('{date}', moment(existBooking.date).format('DD/MM/YYYY').toString());
-        template = template.replace('{time}', `${existBooking.timeFrom} - ${existBooking.timeTo}`);
-        template = template.replace('{dentistName}', dentistInfo != null ? dentistInfo.name : '');
-        template = template.replace('{content}', contentInfo != null ? contentInfo.value : '');
+        template = template.replace(/{customerName}/g, existBooking.mainCustomer != null ? existBooking.mainCustomer.name : '');
+        template = template.replace(/{code}/g, existBooking.code);
+        template = template.replace(/{date}/g, moment(existBooking.date).format('DD/MM/YYYY').toString());
+        template = template.replace(/{time}/g, `${existBooking.timeFrom} - ${existBooking.timeTo}`);
+        template = template.replace(/{dentistName}/g, dentistInfo != null ? dentistInfo.name : '');
+        template = template.replace(/{content}/g, contentInfo != null ? contentInfo.value : '');
     
         if(existBooking.mainCustomer != null && !IsNullOrEmpty(existBooking.mainCustomer.email)) {
             await sendMail({ to: existBooking.mainCustomer.email, subject: 'THƯ NHẮC HẸN', body: template });

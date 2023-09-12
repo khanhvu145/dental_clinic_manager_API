@@ -2,6 +2,7 @@ const { forEach } = require('lodash');
 const models = require('../models/tw_Appointment_Booking');
 const Appointment = models.AppointmentModel;
 const AppointmentLog = models.AppointmentLogModel;
+const AppointmentConfigs = require('../models/tw_Appointment_Config');
 const tw_Customer = require('../models/tw_Customer');
 const Customer = tw_Customer.CustomerModel;
 const CustomerLog = tw_Customer.CustomerLogModel;
@@ -420,12 +421,12 @@ const AppointmentBookingController = {
                     var dentistInfo =  await User.findById(exist.dentistId);
                     var contentInfo =  await GeneralConfig.findById(exist.content);  
                     if(template){
-                        template = template.replace('{customerName}', exist.mainCustomer != null ? exist.mainCustomer.name : '');
-                        template = template.replace('{code}', exist.code);
-                        template = template.replace('{date}', moment(exist.date).format('DD/MM/YYYY').toString());
-                        template = template.replace('{time}', `${exist.timeFrom} - ${exist.timeTo}`);
-                        template = template.replace('{dentistName}', dentistInfo != null ? dentistInfo.name : '');
-                        template = template.replace('{content}', contentInfo != null ? contentInfo.value : '');
+                        template = template.replace(/{customerName}/g, exist.mainCustomer != null ? exist.mainCustomer.name : '');
+                        template = template.replace(/{code}/g, exist.code);
+                        template = template.replace(/{date}/g, moment(exist.date).format('DD/MM/YYYY').toString());
+                        template = template.replace(/{time}/g, `${exist.timeFrom} - ${exist.timeTo}`);
+                        template = template.replace(/{dentistName}/g, dentistInfo != null ? dentistInfo.name : '');
+                        template = template.replace(/{content}/g, contentInfo != null ? contentInfo.value : '');
 
                         var timeRemind = new Date(moment().format('YYYY/MM/DD HH:mm:ss'));
                         var expireTime = moment(timeRemind).add(10, 's')._d;
@@ -492,8 +493,6 @@ const AppointmentBookingController = {
                     );
                     if(updated.modifiedCount > 0 && updated.acknowledged == true){
                         var data = await Appointment.findById(formData.ids[i]);
-                        // Notify
-
                         //Logs
                         await AppointmentLog.CreateLog(data._id, 'Xác nhận đến khám', [], req.username);
 
@@ -551,7 +550,32 @@ const AppointmentBookingController = {
                     );
                     if(updated.modifiedCount > 0 && updated.acknowledged == true){
                         var data = await Appointment.findById(formData.ids[i]);
-                        // Notify
+                        //#region Gửi email thông báo KH
+                        if(data.mainCustomer && !IsNullOrEmpty(data.mainCustomer.email)){
+                            const NOTIFY_COMPLETE_APPOINTMENT = await AppointmentConfigs.findOne({ key: 'NOTIFY_COMPLETE_APPOINTMENT' });
+                            if(NOTIFY_COMPLETE_APPOINTMENT && NOTIFY_COMPLETE_APPOINTMENT.value == 'yes'){
+                                var template = fs.readFileSync(path.join(__dirname, '/../content/emailTemplate/NotifyCompleteAppointmentTemplate.html'),{encoding:'utf-8'});
+                                if(template){
+                                    template = template.replace(/{customerName}/g, data.mainCustomer != null ? data.mainCustomer?.name : '');
+                    
+                                    var timeRemind = new Date(moment().format('YYYY/MM/DD HH:mm:ss'));
+                                    var expireTime = moment(timeRemind).add(10, 's')._d;
+                                    var dateCronRemind = convertDateToCron(expireTime);
+                    
+                                    var job2 = await new CronJob(
+                                        dateCronRemind,
+                                        async function(){
+                                            await sendMail({ to: data.mainCustomer?.email, subject: 'HOÀN THÀNH LỊCH HẸN', body: template });
+                                        },
+                                        null,
+                                        true,
+                                        'Asia/Ho_Chi_Minh'
+                                    );
+                                    await job2.start();
+                                }
+                            }
+                        }
+                        //#endregion
 
                         //Logs
                         await AppointmentLog.CreateLog(data._id, 'Hoàn thành lịch hẹn', [], req.username);
@@ -620,7 +644,33 @@ const AppointmentBookingController = {
                     );
                     if(updated.modifiedCount > 0 && updated.acknowledged == true){
                         var data = await Appointment.findById(formData.ids[i]);
-                        // Notify
+                        //#region Gửi email thông báo KH
+                        if(data.mainCustomer && !IsNullOrEmpty(data.mainCustomer.email)){
+                            const NOTIFY_CANCEL_APPOINTMENT = await AppointmentConfigs.findOne({ key: 'NOTIFY_CANCEL_APPOINTMENT' });
+                            if(NOTIFY_CANCEL_APPOINTMENT && NOTIFY_CANCEL_APPOINTMENT.value == 'yes'){
+                                var template = fs.readFileSync(path.join(__dirname, '/../content/emailTemplate/NotifyCancelAppointmentTemplate.html'),{encoding:'utf-8'});
+                                if(template){
+                                    template = template.replace(/{customerName}/g, data.mainCustomer != null ? data.mainCustomer?.name : '');
+                                    template = template.replace(/{cancelReason}/g, formData.cancelReason);
+                    
+                                    var timeRemind = new Date(moment().format('YYYY/MM/DD HH:mm:ss'));
+                                    var expireTime = moment(timeRemind).add(10, 's')._d;
+                                    var dateCronRemind = convertDateToCron(expireTime);
+                    
+                                    var job2 = await new CronJob(
+                                        dateCronRemind,
+                                        async function(){
+                                            await sendMail({ to: data.mainCustomer?.email, subject: 'HỦY LỊCH HẸN', body: template });
+                                        },
+                                        null,
+                                        true,
+                                        'Asia/Ho_Chi_Minh'
+                                    );
+                                    await job2.start();
+                                }
+                            }
+                        }
+                        //#endregion
 
                         //Logs
                         var log = [];
