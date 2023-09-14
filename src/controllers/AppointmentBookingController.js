@@ -193,8 +193,8 @@ const AppointmentBookingController = {
             var dateFromF = null;
             var dateToF = null;
             if(filters.dateF != null && filters.dateF != '' && filters.dateF.length > 0){
-                dateFromF = new Date(moment(filters.dateF[0]).format('YYYY/MM/DD'));
-                dateToF = new Date(moment(filters.dateF[1]).format('YYYY/MM/DD'));
+                dateFromF = new Date(moment(filters.dateF[0]).format('YYYY/MM/DD HH:mm'));
+                dateToF = new Date(moment(filters.dateF[1]).format('YYYY/MM/DD HH:mm'));
             }
             var data = await Appointment.aggregate([
                 { $lookup: {
@@ -223,8 +223,8 @@ const AppointmentBookingController = {
                                 { 'mainCustomer.code': { $regex: filters.customersF, $options:"i" } },
                             ] 
                         },
-                        dateFromF ? { date: { $gte: dateFromF } } : {},
-                        dateToF ? { date: { $lte: dateToF } } : {},
+                        dateFromF ? { dateTimeFrom: { $gte: dateFromF } } : {},
+                        dateToF ? { dateTimeFrom: { $lte: dateToF } } : {},
                         (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
                             dentistId: { $in: listDentistId }
                         } : {},
@@ -711,7 +711,50 @@ const AppointmentBookingController = {
         catch(err){
             return res.status(400).json({ success: false, error: err });
         }
-    }
+    },
+    getWorkingCalendar: async(req, res) => {
+        try{
+            var filters = req.body;
+            var data = await Appointment.aggregate([
+                { $lookup: {
+                    from: "tw_users",
+                    localField: "dentistId",
+                    foreignField: "_id",
+                    as: "dentistInfo"
+                }},
+                {
+                    $addFields: {
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
+                        "dentistUsername": { $arrayElemAt: ["$dentistInfo.username", 0] },
+                        "dentistPhone": { $arrayElemAt: ["$dentistInfo.phone", 0] },
+                        "dentistCode": { $arrayElemAt: ["$dentistInfo.code", 0] }
+                    }
+                },
+                { $project: { 
+                    dentistInfo: 0
+                }},
+                { $match: { 
+                    $and: [
+                        { dentistUsername: req.username },
+                        filters.dateF ? { 
+                            dateTimeFrom: { $gte: new Date(new Date(`${filters.dateF}`).setHours(0,0,0,0)) }
+                        } : {},
+                        filters.dateF ? { 
+                            dateTimeFrom: { $lte: new Date(new Date(`${filters.dateF}`).setHours(23,59,0,0)) }
+                        } : {},
+                        (filters.statusF.length > 0 && filters.statusF != null) ? { 
+                            status: { $in: filters.statusF }
+                        } : {}
+                    ]
+                }}
+            ]);
+
+            return res.status(200).json({ success: true, data: data });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
 }
 
 module.exports = AppointmentBookingController;
