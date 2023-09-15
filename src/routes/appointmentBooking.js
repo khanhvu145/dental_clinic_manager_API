@@ -3,7 +3,6 @@ const appointmentBookingController = require('../controllers/AppointmentBookingC
 const GetAccessToken = require('../middlewares/GetAccessToken');
 const router = express.Router();
 
-router.post('/getWorkingCalendar', GetAccessToken('workingCalendar', 'view'), appointmentBookingController.getWorkingCalendar);
 router.post('/cancelBooking', GetAccessToken('appointment', 'cancelBooking'), appointmentBookingController.cancelBooking);
 router.post('/completeBooking', GetAccessToken('appointment', 'completeBooking'), appointmentBookingController.completeBooking);
 router.post('/confirmBooking', GetAccessToken('appointment', 'confirmBooking'), appointmentBookingController.confirmBooking);
