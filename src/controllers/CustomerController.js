@@ -292,6 +292,13 @@ const CustomerController = {
             if(formData.physicalId == null || formData.physicalId == '') {
                 return res.status(200).json({ success: false, error: "Hãy nhập CMND/CCCD" });
             }
+            else{
+                //Kiểm tra trùng CMND/CCCD
+                var existsCustomer = await Customer.findOne({ physicalId: formData.physicalId });
+                if(existsCustomer != null){
+                    return res.status(200).json({ success: false, error: "Khách hàng trùng CMND/CCCD" });
+                }
+            }
             //Số điện thoại
             if(formData.phone == null || formData.phone == '') {
                 return res.status(200).json({ success: false, error: "Hãy nhập số điện thoại" });
