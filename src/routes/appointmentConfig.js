@@ -7,7 +7,5 @@ const router = express.Router();
 router.post('/update', GetAccessToken('appointmentConfig', 'update'), appointmentConfigController.update);
 router.post('/getDataByKey', verifyToken, appointmentConfigController.getDataByKey);
 router.post('/getDataByListKey', verifyToken, appointmentConfigController.getDataByListKey);
-router.post('/createUpdate', appointmentConfigController.createUpdate);
-router.get('/getData', appointmentConfigController.getData);
 
 module.exports = router;

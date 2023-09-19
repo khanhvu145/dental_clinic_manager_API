@@ -6,6 +6,7 @@ const Payment = require('../models/tw_Payment');
 const Receipts = require('../models/tw_Receipts');
 const Designation = require('../models/tw_Examination_Designation');
 const Prescription = require('../models/tw_Examination_Prescription');
+const User = require('../models/tw_User');
 const bcrypt = require('bcrypt');
 const salt = bcrypt.genSaltSync(10);
 const firebaseDB = require('../helpers/firebase');
@@ -458,19 +459,19 @@ const CustomerController = {
             return res.status(400).json({ success: false, error: err });
         }
     },
-    getAll: async(req, res) => {
-        try{
-            var data = await Customer.find({ isActive: true });
-            return res.status(200).json({ success: true, data: data });
-        }
-        catch(err){
-            return res.status(400).json({ success: false, error: err });
-        }
-    },
     createExamination: async(req, res) => {
         try{
             var formData = req.body;
-    
+            var anamnesis = [];
+            var allergy = {
+                allergies: [],
+                other: ''
+            }
+            //Lấy thông tin người dùng hiện tại
+            const user = await User.findOne({ username: req.username });
+            if(user == null){
+                return res.status(200).json({ success: false, error: "Có lỗi xảy ra" });
+            }
             //#region Kiểm tra đầu vào
             //Kiểm tra KH
             const customer = await Customer.findById(formData.customerId);
@@ -479,18 +480,26 @@ const CustomerController = {
             }
             //#endregion
 
+            //#region Lấy thông tin phiếu khám gần nhất (nếu có)
+            const lastExamination = await Examination.find({ customerId: customer._id, status: 'completed' }).sort({createdAt:-1}).limit(1);
+            if(lastExamination && lastExamination.length > 0){
+                anamnesis = _this.lastExamination[0].anamnesis;
+                allergy.allergies = _this.lastExamination[0].allergy.allergies || [];
+                allergy.other = _this.lastExamination[0].allergy.other || '';
+            }
+            //#endregion
+
             //#region Tạo phiếu khám
             const newData = await new Examination({
-                customerId: formData.customerId, 
-                dentistId: formData.dentistId, 
-                anamnesis: formData.anamnesis || [], 
-                "allergy.allergies": formData.allergy.allergies || [],
-                "allergy.other": formData.allergy.other || '',
-                clinicalExam: formData.clinicalExam || '', 
-                "preclinicalExam.xquang": formData.preclinicalExam.xquang || [],
-                "preclinicalExam.test": formData.preclinicalExam.test || [],
-                "preclinicalExam.other": formData.preclinicalExam.other || '',
-                // attachFiles: [], 
+                customerId: customer._id, 
+                dentistId: user._id, 
+                anamnesis: anamnesis || [], 
+                "allergy.allergies": allergy.allergies || [],
+                "allergy.other": allergy.other || '',
+                clinicalExam: '', 
+                "preclinicalExam.xquang": [],
+                "preclinicalExam.test": [],
+                "preclinicalExam.other": '',
                 diagnosisTreatment: [], 
                 treatmentAmount: parseFloat(0),
                 totalDiscountAmount: parseFloat(0),
@@ -498,14 +507,14 @@ const CustomerController = {
                 note: '', 
                 status: 'new',
                 createdAt: Date.now(),
-                createdBy: formData.createdBy ? formData.createdBy : ''
+                createdBy: req.username ? req.username : ''
             }).save();
 
             await Examination.updateOne(
                 { _id: newData._id }, 
                 {
                     $set: { 
-                        code: 'EXAM-' + newData._id.toString().slice(-5).toUpperCase()
+                        code: 'EXAM' + newData._id.toString().slice(-5).toUpperCase()
                     }
                 }
             );
@@ -526,7 +535,7 @@ const CustomerController = {
             }
             if (isUpdate)
             {
-                await CustomerLog.CreateLog(data.customerId, 'examination', log, 'create', formData.createdBy);
+                await CustomerLog.CreateLog(data.customerId, 'examination', log, 'create', req.username);
             }
             //#endregion
 
@@ -634,8 +643,8 @@ const CustomerController = {
             var dateFromF = null;
             var dateToF = null;
             if(filters.dateF != null && filters.dateF != '' && filters.dateF.length > 0){
-                dateFromF = new Date(moment(filters.dateF[0]).format('YYYY/MM/DD'));
-                dateToF = new Date(moment(filters.dateF[1]).format('YYYY/MM/DD'));
+                dateFromF = new Date(new Date(moment(filters.dateF[0]).format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(filters.dateF[1]).format('YYYY/MM/DD')).setHours(23,59,0,0));
             }
             
             var data = await Examination.aggregate([
@@ -821,7 +830,7 @@ const CustomerController = {
             }
             else{
                 if(examination.status != 'new'){
-                    return res.status(200).json({ success: false, error: "Trạng thái phiếu khám hiện tại không thể chỉnh sửa" });
+                    return res.status(200).json({ success: false, error: "Trạng thái phiếu khám không hợp lệ" });
                 }
             }
             //Xử lý hủy chỉ định
@@ -833,7 +842,6 @@ const CustomerController = {
                             for(let i = 0; i < exist.files.length; i++){
                                 var file = exist.files[i];
                                 var result = await deleteFileUpload('designation/' + examination.customerId + '/' + exist.examinationId + '/' + file.name);
-                                console.log(result);
                             }
                         }
                         return res.status(200).json({ success: true });
@@ -864,7 +872,7 @@ const CustomerController = {
             }
             else{
                 if(examination.status != 'new'){
-                    return res.status(200).json({ success: false, error: "Trạng thái phiếu khám hiện tại không thể upload" });
+                    return res.status(200).json({ success: false, error: "Trạng thái phiếu khám không hợp lệ" });
                 }
             }
             //Kiểm tra loại chỉ định
@@ -907,7 +915,7 @@ const CustomerController = {
                             description: formData.description,
                             files: formData.files,
                             updatedAt: Date.now(),
-                            updatedBy: formData.updatedBy ? formData.updatedBy : ''
+                            updatedBy: req.username ? req.username : ''
                         }
                     }
                 );
@@ -921,7 +929,7 @@ const CustomerController = {
                     fileList: [],
                     files: fileArr || [],
                     createdAt: Date.now(),
-                    createdBy: formData.createdBy ? formData.createdBy : ''
+                    createdBy: req.username ? req.username : ''
                 }).save();
                 data = newData;
             }
@@ -946,7 +954,7 @@ const CustomerController = {
             }
             else{
                 if(examination.status != 'new'){
-                    return res.status(200).json({ success: false, error: "Trạng thái phiếu khám hiện tại không thể chỉnh sửa" });
+                    return res.status(200).json({ success: false, error: "Trạng thái phiếu khám không hợp lệ" });
                 }
             }
 
@@ -958,7 +966,7 @@ const CustomerController = {
                     $set: { 
                         files: newFiles,
                         updatedAt: Date.now(),
-                        updatedBy: formData.updatedBy ? formData.updatedBy : ''
+                        updatedBy: req.username ? req.username : ''
                     }
                 }
             ).then(async() => {
@@ -967,7 +975,6 @@ const CustomerController = {
                     if(formData.file){
                         var file = formData.file;
                         var result = await deleteFileUpload('designation/' + examination.customerId + '/' + exist.examinationId + '/' + file.name);
-                        console.log(result);
                     }
                     var data = await Designation.findById(formData.id);
                     return res.status(200).json({ success: true, data: data });

@@ -14,7 +14,7 @@ const userRoute = require('./routes/user');
 const customerRoute = require('./routes/customer');
 const generalconfigRoute = require('./routes/generalconfig');
 const serviceRoute = require('./routes/service');
-const appointmentRoute = require('./routes/appointment');
+// const appointmentRoute = require('./routes/appointment');
 const appointmentConfigRoute = require('./routes/appointmentConfig');
 const smtpConfigRoute = require('./routes/smtpconfig');
 const workingCalendarRoute = require('./routes/workingCalendar');
@@ -26,8 +26,6 @@ const informationConfigRoute = require('./routes/informationConfig');
 const appointmentBookingRoute = require('./routes/appointmentBooking');
 const schedule = require('node-schedule');
 const axios = require('axios');
-const models = require('./models/tw_Appointment_Booking');
-const Appointment = models.AppointmentModel;
 
 //CONNECT DATABASE
 dotenv.config();
@@ -50,7 +48,7 @@ app.use('/api/user', userRoute);
 app.use('/api/customer', customerRoute);
 app.use('/api/generalconfig', generalconfigRoute);
 app.use('/api/service', serviceRoute);
-app.use('/api/appointment', appointmentRoute);
+// app.use('/api/appointment', appointmentRoute);
 app.use('/api/appointmentConfig', appointmentConfigRoute);
 app.use('/api/smtpConfig', smtpConfigRoute);
 app.use('/api/workingCalendar', workingCalendarRoute);
