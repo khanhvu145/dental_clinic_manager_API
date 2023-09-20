@@ -8,11 +8,12 @@ const router = express.Router();
 router.get('/getPrescriptionByExaminationId/:id/', customerController.getPrescriptionByExaminationId);
 router.post('/updatePrescription', customerController.updatePrescription);
 router.post('/createPrescription', customerController.createPrescription);
-router.post('/cancelExamination', customerController.cancelExamination);
-router.post('/confirmExamination', customerController.confirmExamination);
 router.post('/getByQueryDiary', customerController.getByQueryDiary);
 router.post('/getLatestExamination', customerController.getLatestExamination);
 
+router.post('/completeExamination', GetAccessToken('customer', 'updateExamination'), customerController.completeExamination);
+router.post('/cancelExamination', GetAccessToken('customer', 'cancelExamination'), customerController.cancelExamination);
+router.post('/confirmExamination', GetAccessToken('customer', 'updateExamination'), customerController.confirmExamination);
 router.delete('/removeDesignation/:id/', GetAccessToken('customer', 'updateExamination'), customerController.removeDesignation);
 router.post('/removeDesignationFile', GetAccessToken('customer', 'updateExamination'), customerController.removeDesignationFile);
 router.post('/uploadDesignation', GetAccessToken('customer', 'updateExamination'), multer.any('fileList'), customerController.uploadDesignation);

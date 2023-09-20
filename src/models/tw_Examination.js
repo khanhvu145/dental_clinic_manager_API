@@ -94,10 +94,16 @@ const tw_Examination = new Schema({
     updatedBy: {
         type: String,
     },
-    approvedAt: {
+    confirmAt: {
         type: Date,
     },
-    approvedBy: {
+    confirmBy: {
+        type: String,
+    },
+    completedAt: {
+        type: Date,
+    },
+    completedBy: {
         type: String,
     },
     cancelReason: {
