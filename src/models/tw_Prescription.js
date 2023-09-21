@@ -2,15 +2,18 @@ const mongoose = require('mongoose');
 const mongooseDelete = require('mongoose-delete');
 const Schema = mongoose.Schema;
 
-const tw_Examination_Prescription = new Schema({
-    examinationId: { 
+const tw_Prescription = new Schema({
+    customerId: { 
         type: Schema.Types.ObjectId, 
         required: true,
     },
-    // customerId: { 
-    //     type: Schema.Types.ObjectId, 
-    //     required: true,
-    // },
+    dentistId: { 
+        type: Schema.Types.ObjectId, 
+        required: true,
+    },
+    content: {
+        type: String,
+    },
     advice: {
         type: String,
     },
@@ -39,9 +42,9 @@ const tw_Examination_Prescription = new Schema({
     }
 });
 
-tw_Examination_Prescription.plugin(mongooseDelete, { 
+tw_Prescription.plugin(mongooseDelete, { 
     overrideMethods: 'all',
     deletedAt : true, 
 });
 
-module.exports = mongoose.model('tw_Examination_Prescription', tw_Examination_Prescription);
+module.exports = mongoose.model('tw_Prescription', tw_Prescription);

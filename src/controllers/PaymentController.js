@@ -18,8 +18,8 @@ const PaymentController = {
             var dateToF = null;
             
             if(filters.dateF != null && filters.dateF != '' && filters.dateF.length > 0){
-                dateFromF = new Date(moment(filters.dateF[0]).format('YYYY/MM/DD'));
-                dateToF = new Date(moment(filters.dateF[1]).format('YYYY/MM/DD'));
+                dateFromF = new Date(new Date(moment(filters.dateF[0]).format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(filters.dateF[1]).format('YYYY/MM/DD')).setHours(23,59,0,0));
             }
             
             var data = await Payment.aggregate([
@@ -121,7 +121,7 @@ const PaymentController = {
                 return res.status(200).json({ success: false, error: "Thông tin thanh toán không tồn tại" });
             }
             if(payment.remainAmount <= 0){
-                return res.status(200).json({ success: false, error: "Hóa đơn thanh thanh toán đã được thanh toán đủ" });
+                return res.status(200).json({ success: false, error: "Hóa đơn thanh toán đã được thanh toán đủ" });
             }
             //Kiểm tra số tiền thanh toán
             if(formData.paidAmount <= 0 || formData.paidAmount > payment.remainAmount) {
@@ -145,58 +145,61 @@ const PaymentController = {
                         remainAmount: parseFloat(remainAmount),
                         status: status,
                         updatedAt: Date.now(),
-                        updatedBy: formData.updatedBy ? formData.updatedBy : ''
+                        updatedBy: req.username ? req.username : ''
                     }
                 }
-            );
-            var paymentData = await Payment.findById(payment._id);
-            //#endregion
-            
-            //#region Tạo phiếu thu
-            //Chuẩn hóa dữ liệu
-            const receiptsData = {
-                paymentId: payment._id,
-                examinationId: payment.examinationId,
-                customerId: payment.customerId,
-                amount: formData.paidAmount,
-                methodFee: formData.methodFee,
-                note: formData.note,
-                status: 'paid',
-                createdAt: Date.now(),
-                createdBy: formData.updatedBy
-            };
-            var receipts = await Receipts.createReceipts(receiptsData, fileList);
-            console.log(receipts);
-            if(receipts.code <= 0){
-                return res.status(200).json({ success: false, error: receipts.error });
-            }
-            //#endregion
-
-            //#region Log
-            var log = [];
-            var isUpdate = false;
-            
-            if(receipts && receipts.data) {
-                isUpdate = true;
-                var item = {
-                    column: 'Xác nhận thanh toán',
-                    oldvalue: {},
-                    newvalue: {
-                        id: receipts.data._id,
-                        code: receipts.data.code,
-                        amount: receipts.data.amount
+            ).then(async() => {
+                try{
+                    var paymentData = await Payment.findById(payment._id);
+                    //#region Tạo phiếu thu
+                    //Chuẩn hóa dữ liệu
+                    const receiptsData = {
+                        paymentId: paymentData._id,
+                        examinationId: paymentData.examinationId,
+                        customerId: paymentData.customerId,
+                        amount: formData.paidAmount,
+                        methodFee: formData.methodFee,
+                        note: formData.note,
+                        status: 'paid',
+                        createdAt: Date.now(),
+                        createdBy: req.username
+                    };
+                    var receipts = await Receipts.createReceipts(receiptsData, fileList);
+                    if(receipts.code <= 0){
+                        return res.status(200).json({ success: false, error: receipts.error });
                     }
-                };
-                log.push(item);
-            }
-            
-            if (isUpdate)
-            {
-                await CustomerLog.CreateLog(receipts.data.customerId, 'payment', log, 'confirm', formData.updatedBy);
-            }
+                    //#endregion
+                    //#region Log
+                    var log = [];
+                    var isUpdate = false;
+                    if(receipts && receipts.data) {
+                        isUpdate = true;
+                        var item = {
+                            column: 'Xác nhận thanh toán',
+                            oldvalue: {},
+                            newvalue: {
+                                id: receipts.data._id,
+                                code: receipts.data.code,
+                                amount: receipts.data.amount
+                            }
+                        };
+                        log.push(item);
+                    }
+                    if (isUpdate)
+                    {
+                        await CustomerLog.CreateLog(receipts.data.customerId, 'payment', log, 'confirm', req.username);
+                    }
+                    //#endregion
+                    return res.status(200).json({ success: true, message: 'Thanh toán thành công', paymentData: paymentData, receiptsData: receipts.data });
+                }
+                catch (e){
+                    return res.status(200).json({ success: false, error: e });
+                }
+            })
+            .catch(() => {
+                return res.status(200).json({ success: false, error: "Xác nhận thanh toán không thành công" });
+            }); 
             //#endregion
-
-            return res.status(200).json({ success: true, message: 'Thanh toán thành công', paymentData: paymentData, receiptsData: receipts.data });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });

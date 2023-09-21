@@ -7,10 +7,11 @@ const router = express.Router();
 
 router.get('/getPrescriptionByExaminationId/:id/', customerController.getPrescriptionByExaminationId);
 router.post('/updatePrescription', customerController.updatePrescription);
-router.post('/createPrescription', customerController.createPrescription);
-router.post('/getByQueryDiary', customerController.getByQueryDiary);
 router.post('/getLatestExamination', customerController.getLatestExamination);
 
+router.post('/getByQueryPrescription', GetAccessToken('customer', 'viewPrescription'), customerController.getByQueryPrescription);
+router.post('/createPrescription', GetAccessToken('customer', 'createUpdatePrescription'), customerController.createPrescription);
+router.post('/getByQueryDiary', GetAccessToken('customer', 'viewDiary'), customerController.getByQueryDiary);
 router.post('/completeExamination', GetAccessToken('customer', 'updateExamination'), customerController.completeExamination);
 router.post('/cancelExamination', GetAccessToken('customer', 'cancelExamination'), customerController.cancelExamination);
 router.post('/confirmExamination', GetAccessToken('customer', 'updateExamination'), customerController.confirmExamination);

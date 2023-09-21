@@ -5,7 +5,7 @@ const Examination = require('../models/tw_Examination');
 const Payment = require('../models/tw_Payment');
 const Receipts = require('../models/tw_Receipts');
 const Designation = require('../models/tw_Examination_Designation');
-const Prescription = require('../models/tw_Examination_Prescription');
+const Prescription = require('../models/tw_Prescription');
 const User = require('../models/tw_User');
 const bcrypt = require('bcrypt');
 const salt = bcrypt.genSaltSync(10);
@@ -529,7 +529,7 @@ const CustomerController = {
                 var item = {
                     column: 'Khám và điều trị',
                     oldvalue: {},
-                    newvalue: data
+                    newvalue: data._id
                 };
                 log.push(item);
             }
@@ -727,8 +727,8 @@ const CustomerController = {
             var dateFromF = null;
             var dateToF = null;
             if(filters.dateF != null && filters.dateF != '' && filters.dateF.length > 0){
-                dateFromF = new Date(moment(filters.dateF[0]).format('YYYY/MM/DD'));
-                dateToF = new Date(moment(filters.dateF[1]).format('YYYY/MM/DD'));
+                dateFromF = new Date(new Date(moment(filters.dateF[0]).format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(filters.dateF[1]).format('YYYY/MM/DD')).setHours(23,59,0,0));
             }
             
             var data = await CustomerLog.find({
@@ -1019,7 +1019,7 @@ const CustomerController = {
                         var item = {
                             column: 'Xác nhận điều trị',
                             oldvalue: {},
-                            newvalue: data
+                            newvalue: data._id
                         };
                         log.push(item);
                     }
@@ -1079,7 +1079,7 @@ const CustomerController = {
                         var item = {
                             column: 'Hủy phiếu khám',
                             oldvalue: {},
-                            newvalue: data
+                            newvalue: data._id
                         };
                         log.push(item);
                     }
@@ -1161,7 +1161,7 @@ const CustomerController = {
                         var item = {
                             column: 'Hoàn thành điều trị',
                             oldvalue: {},
-                            newvalue: data
+                            newvalue: data._id
                         };
                         log.push(item);
                     }
@@ -1189,17 +1189,23 @@ const CustomerController = {
         try{
             var formData = req.body;
             // Kiểm tra thông tin phiếu khám
-            const examination = await Examination.findById(formData.examinationId);
-            if(examination == null){
-                return res.status(200).json({ success: false, error: "Không có thông tin phiếu khám" });
+            const customer = await Customer.findById(formData.customerId);
+            if(customer == null){
+                return res.status(200).json({ success: false, error: "Không có thông tin khách hàng" });
+            }
+            const user = await User.findOne({ username: req.username });
+            if(user == null){
+                return res.status(200).json({ success: false, error: "Có lỗi xảy ra" });
             }
             // Xử lý
             const newData = await new Prescription({
-                examinationId: examination._id, 
+                customerId: customer._id, 
+                dentistId: user._id, 
+                content: formData.content || '', 
                 advice: formData.advice || '', 
                 medicines: formData.medicines || [],
                 createdAt: Date.now(),
-                createdBy: formData.createdBy ? formData.createdBy : ''
+                createdBy: req.username ? req.username : ''
             }).save();
 
             return res.status(200).json({ success: true, message: 'Lưu đơn thuốc thành công', data: newData });
@@ -1281,6 +1287,101 @@ const CustomerController = {
             ]);
 
             return res.status(200).json({ success: true, data: data && data.length > 0 ? data[data.length - 1] : new Prescription() });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getByQueryPrescription: async (req, res) => {
+        try{
+            var filters = req.body.filters;
+            var sorts = req.body.sorts;
+            var pages = req.body.pages;
+            var listDentistId = filters.dentistsF.map(x => mongoose.Types.ObjectId(x));
+            var dateFromF = null;
+            var dateToF = null;
+            if(filters.dateF != null && filters.dateF != '' && filters.dateF.length > 0){
+                dateFromF = new Date(new Date(moment(filters.dateF[0]).format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(filters.dateF[1]).format('YYYY/MM/DD')).setHours(23,59,0,0));
+            }
+            
+            var data = await Prescription.aggregate([
+                { $lookup: {
+                    from: "tw_users",
+                    localField: "dentistId",
+                    foreignField: "_id",
+                    as: "dentistInfo"
+                }},
+                { $lookup: {
+                    from: "tw_customers",
+                    localField: "customerId",
+                    foreignField: "_id",
+                    as: "customerInfo"
+                }},
+                {
+                    $addFields: {
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
+                        "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
+                        "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
+                        "customerBirthday": { $arrayElemAt: ["$customerInfo.birthday", 0] },
+                        "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
+                        "customerPhysicalId": { $arrayElemAt: ["$customerInfo.physicalId", 0] },
+                        "customerPhone": { $arrayElemAt: ["$customerInfo.phone", 0] },
+                    }
+                },
+                { $project: { 
+                    dentistInfo: 0,
+                    customerInfo: 0
+                }},
+                { $match: { 
+                    $and: [
+                        { customerId: mongoose.Types.ObjectId(filters.customerF) },
+                        { code: { $regex: filters.codeF, $options:"i" } },
+                        dateFromF ? { createdAt: { $gte: dateFromF } } : {},
+                        dateToF ? { createdAt: { $lte: dateToF } } : {},
+                        (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
+                            dentistId: { $in: listDentistId }
+                        } : {},
+                        (filters.statusF.length > 0 && filters.statusF != null) ? { 
+                            status: { $in: filters.statusF }
+                        } : {}
+                    ]
+                }},
+                { $sort: { createdAt: sorts }},
+                { $limit: (pages.from + pages.size) },
+                { $skip: pages.from }
+            ]);
+            
+            var total = await Examination.aggregate([
+                { $lookup: {
+                    from: "tw_users",
+                    localField: "dentistId",
+                    foreignField: "_id",
+                    as: "dentistInfo"
+                }},
+                {
+                    $addFields: {
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
+                    }
+                },
+                { $project: { 
+                    dentistInfo: 0
+                }},
+                { $match: { 
+                    $and: [
+                        { customerId: mongoose.Types.ObjectId(filters.customerF) },
+                        { code: { $regex: filters.codeF, $options:"i" } },
+                        dateFromF ? { date: { $gte: dateFromF } } : {},
+                        dateToF ? { date: { $lte: dateToF } } : {},
+                        (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
+                            dentistId: { $in: listDentistId }
+                        } : {}
+                    ]
+                }},
+                { $count: "count" }
+            ]);
+            
+            return res.status(200).json({ success: true, data: data, total: total.length > 0 ? total[0].count : 0 });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
