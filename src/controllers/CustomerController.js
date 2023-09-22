@@ -1189,6 +1189,12 @@ const CustomerController = {
         try{
             var formData = req.body;
             // Kiểm tra thông tin phiếu khám
+            if(IsNullOrEmpty(formData.content)){
+                return res.status(200).json({ success: false, error: "Hãy nhập nội dung" });
+            }
+            if(formData.medicines == null || formData.medicines.length <= 0){
+                return res.status(200).json({ success: false, error: "Hãy nhập đơn thuốc" });
+            }
             const customer = await Customer.findById(formData.customerId);
             if(customer == null){
                 return res.status(200).json({ success: false, error: "Không có thông tin khách hàng" });
@@ -1336,14 +1342,10 @@ const CustomerController = {
                 { $match: { 
                     $and: [
                         { customerId: mongoose.Types.ObjectId(filters.customerF) },
-                        { code: { $regex: filters.codeF, $options:"i" } },
                         dateFromF ? { createdAt: { $gte: dateFromF } } : {},
                         dateToF ? { createdAt: { $lte: dateToF } } : {},
                         (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
                             dentistId: { $in: listDentistId }
-                        } : {},
-                        (filters.statusF.length > 0 && filters.statusF != null) ? { 
-                            status: { $in: filters.statusF }
                         } : {}
                     ]
                 }},
@@ -1359,20 +1361,32 @@ const CustomerController = {
                     foreignField: "_id",
                     as: "dentistInfo"
                 }},
+                { $lookup: {
+                    from: "tw_customers",
+                    localField: "customerId",
+                    foreignField: "_id",
+                    as: "customerInfo"
+                }},
                 {
                     $addFields: {
                         "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
+                        "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
+                        "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
+                        "customerBirthday": { $arrayElemAt: ["$customerInfo.birthday", 0] },
+                        "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
+                        "customerPhysicalId": { $arrayElemAt: ["$customerInfo.physicalId", 0] },
+                        "customerPhone": { $arrayElemAt: ["$customerInfo.phone", 0] },
                     }
                 },
                 { $project: { 
-                    dentistInfo: 0
+                    dentistInfo: 0,
+                    customerInfo: 0
                 }},
                 { $match: { 
                     $and: [
                         { customerId: mongoose.Types.ObjectId(filters.customerF) },
-                        { code: { $regex: filters.codeF, $options:"i" } },
-                        dateFromF ? { date: { $gte: dateFromF } } : {},
-                        dateToF ? { date: { $lte: dateToF } } : {},
+                        dateFromF ? { createdAt: { $gte: dateFromF } } : {},
+                        dateToF ? { createdAt: { $lte: dateToF } } : {},
                         (filters.dentistsF.length > 0 && filters.dentistsF != null) ? { 
                             dentistId: { $in: listDentistId }
                         } : {}
@@ -1386,7 +1400,50 @@ const CustomerController = {
         catch(err){
             return res.status(400).json({ success: false, error: err });
         }
-    }
+    },
+    getPrescriptionById: async (req, res) => {
+        try{
+            var data = await Prescription.aggregate([
+                { $lookup: {
+                    from: "tw_users",
+                    localField: "dentistId",
+                    foreignField: "_id",
+                    as: "dentistInfo"
+                }},
+                { $lookup: {
+                    from: "tw_customers",
+                    localField: "customerId",
+                    foreignField: "_id",
+                    as: "customerInfo"
+                }},
+                {
+                    $addFields: {
+                        "dentistName": { $arrayElemAt: ["$dentistInfo.name", 0] },
+                        "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
+                        "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
+                        "customerBirthday": { $arrayElemAt: ["$customerInfo.birthday", 0] },
+                        "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
+                        "customerPhysicalId": { $arrayElemAt: ["$customerInfo.physicalId", 0] },
+                        "customerPhone": { $arrayElemAt: ["$customerInfo.phone", 0] },
+                    }
+                },
+                { $project: { 
+                    dentistInfo: 0,
+                    customerInfo: 0
+                }},
+                { $match: { 
+                    $and: [
+                        { _id: mongoose.Types.ObjectId(req.params.id) },
+                    ]
+                }}
+            ]);
+
+            return res.status(200).json({ success: true, data: data && data.length > 0 ? data[0] : new Prescription() });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
 }
 
 module.exports = CustomerController;

@@ -13,6 +13,7 @@ const tw_Prescription = new Schema({
     },
     content: {
         type: String,
+        required: true,
     },
     advice: {
         type: String,
@@ -26,7 +27,8 @@ const tw_Prescription = new Schema({
                 note: { type: String },
             }
         ],
-        default: []
+        default: [],
+        required: true,
     },
     createdAt: {
         type: Date,

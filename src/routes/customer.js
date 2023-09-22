@@ -9,7 +9,8 @@ router.get('/getPrescriptionByExaminationId/:id/', customerController.getPrescri
 router.post('/updatePrescription', customerController.updatePrescription);
 router.post('/getLatestExamination', customerController.getLatestExamination);
 
-router.post('/getByQueryPrescription', GetAccessToken('customer', 'viewPrescription'), customerController.getByQueryPrescription);
+router.get('/getPrescriptionById/:id/', verifyToken, customerController.getPrescriptionById);
+router.post('/getByQueryPrescription', GetAccessToken('customer', 'viewPrescriptionHistory'), customerController.getByQueryPrescription);
 router.post('/createPrescription', GetAccessToken('customer', 'createUpdatePrescription'), customerController.createPrescription);
 router.post('/getByQueryDiary', GetAccessToken('customer', 'viewDiary'), customerController.getByQueryDiary);
 router.post('/completeExamination', GetAccessToken('customer', 'updateExamination'), customerController.completeExamination);
