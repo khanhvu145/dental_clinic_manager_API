@@ -4,6 +4,7 @@ const GetAccessToken = require('../middlewares/GetAccessToken');
 const verifyToken = require('../middlewares/verifyToken');
 const router = express.Router();
 
+router.post('/cancel', GetAccessToken('payment', 'cancel'), PaymentSlipController.cancel);
 router.post('/updateOriginalDocuments', GetAccessToken('payment', 'update'), PaymentSlipController.updateOriginalDocuments);
 router.post('/complete', GetAccessToken('payment', 'update'), PaymentSlipController.complete);
 router.get('/getById/:id/', verifyToken, PaymentSlipController.getById);

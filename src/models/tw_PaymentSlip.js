@@ -44,6 +44,15 @@ const tw_PaymentSlip = new Schema({
     },
     updatedBy: {
         type: String,
+    },
+    cancelledAt: {
+        type: Date,
+    },
+    cancelledBy: {
+        type: String,
+    },
+    cancelReason: {
+        type: String,
     }
 });
 

@@ -156,6 +156,43 @@ const PaymentSlipController = {
         catch(err){
             return res.status(400).json({ success: false, error: err });
         }
+    },
+    cancel: async (req, res) => {
+        try {
+            var formData = req.body;
+            //#region Kiểm tra thông tin
+            const exists = await PaymentSlip.findById(formData.id);
+            if(exists == null) {
+                return res.status(200).json({ success: false, error: "Không có thông tin phiếu chi" });
+            }
+            else{
+                if(exists.status != 'new'){
+                    return res.status(200).json({ success: false, error: "Trạng thái phiếu chi không hợp lệ" });
+                }
+            }
+            //#endregion
+            //#region Xử lý
+            await PaymentSlip.updateOne(
+                { _id: exists._id }, 
+                {
+                    $set: { 
+                        status: 'cancelled',
+                        cancelReason: formData.cancelReason || '',
+                        cancelledAt: Date.now(),
+                        cancelledBy: req.username ? req.username : ''
+                    }
+                }
+            ).then(async() => {
+                return res.status(200).json({ success: true, message: 'Hủy phiếu chi thành công', data: {} });
+            })
+            .catch((err) => {
+                return res.status(200).json({ success: false, error: err });
+            });
+            //#endregion
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
     }
 };
 
