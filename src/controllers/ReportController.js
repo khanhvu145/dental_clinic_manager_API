@@ -104,7 +104,7 @@ const ReportController = {
             return res.status(400).json({ success: false, error: err });
         }
     },
-    getRevenueExpenditure: async(req, res) => {
+    getRevenueExpenditureReport: async(req, res) => {
         try{
             var query = req.body;
             var dateFromF = null;
@@ -236,6 +236,319 @@ const ReportController = {
             return res.status(400).json({ success: false, error: err });
         }
     },
+    getDebtReport: async(req, res) => {
+        try{
+            var query = req.body;
+            var dateFromF = null;
+            var dateToF = null;
+            //#region Xét thời gian theo loại
+            if(query.typeF == 'day'){
+                if(query.dateF == null || query.dateF == '' || query.dateF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                //Xét thời gian
+                dateFromF = new Date(new Date(moment(query.dateF[0]).format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(query.dateF[1]).format('YYYY/MM/DD')).setHours(23,59,0,0));
+            }
+            else if(query.typeF == 'month'){
+                if(query.monthF == null || query.monthF == '' || query.monthF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                //Xét thời gian
+                dateFromF = new Date(moment(query.monthF[0]).startOf('month').toDate());
+                dateToF = new Date(moment(query.monthF[1]).endOf('month').toDate());
+
+            }
+            else if(query.typeF == 'year'){
+                if(query.yearF == null || query.yearF == '' || query.yearF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                dateFromF = new Date(moment(query.yearF[0]).startOf('year').toDate());
+                dateToF = new Date(moment(query.yearF[1]).endOf('year').toDate());
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Loại không hợp lệ" });
+            }
+            //#endregion
+            if(dateFromF && dateToF){
+                //#region Lấy dữ liệu
+                //Đã thu
+                var paidAmount = await Payment.aggregate([
+                    { $match: { 
+                        $and: [
+                            { createdAt: { $gte: dateFromF } },
+                            { createdAt: { $lte: dateToF } }
+                        ]
+                    }},
+                    {
+                        $group: {
+                            _id: null,
+                            totalAmount: { $sum: "$paidAmount" }
+                        }
+                    }
+                ]);
+                //Còn nợ
+                var remainAmount = await Payment.aggregate([
+                    { $match: { 
+                        $and: [
+                            { createdAt: { $gte: dateFromF } },
+                            { createdAt: { $lte: dateToF } }
+                        ]
+                    }},
+                    {
+                        $group: {
+                            _id: null,
+                            totalAmount: { $sum: "$remainAmount" }
+                        }
+                    }
+                ]);
+                //Giảm giá
+                var discountAmount = await Examination.aggregate([
+                    { $match: { 
+                        $and: [
+                            { completedAt: { $gte: dateFromF } },
+                            { completedAt: { $lte: dateToF } },
+                            { status: 'completed' },
+                        ]
+                    }},
+                    {
+                        $group: {
+                            _id: null,
+                            totalAmount: { $sum: "$totalDiscountAmount" }
+                        }
+                    }
+                ]);
+
+                return res.status(200).json({ 
+                    success: true, 
+                    data: [
+                        {
+                            label: 'Đã thu',
+                            value: (paidAmount && paidAmount.length > 0) ? paidAmount[0].totalAmount : 0
+                        },
+                        {
+                            label: 'Còn nợ',
+                            value: (remainAmount && remainAmount.length > 0) ? remainAmount[0].totalAmount : 0
+                        },
+                        {
+                            label: 'Giảm giá',
+                            value: (discountAmount && discountAmount.length > 0) ? discountAmount[0].totalAmount : 0
+                        },
+                    ]
+                });
+                //#endregion
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Có lỗi xảy ra" });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getAppointmentReport: async(req, res) => {
+        try{
+            var query = req.body;
+            var dateFromF = null;
+            var dateToF = null;
+            //#region Xét thời gian theo loại
+            if(query.typeF == 'day'){
+                if(query.dateF == null || query.dateF == '' || query.dateF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                //Xét thời gian
+                dateFromF = new Date(new Date(moment(query.dateF[0]).format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(query.dateF[1]).format('YYYY/MM/DD')).setHours(23,59,0,0));
+            }
+            else if(query.typeF == 'month'){
+                if(query.monthF == null || query.monthF == '' || query.monthF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                //Xét thời gian
+                dateFromF = new Date(moment(query.monthF[0]).startOf('month').toDate());
+                dateToF = new Date(moment(query.monthF[1]).endOf('month').toDate());
+
+            }
+            else if(query.typeF == 'year'){
+                if(query.yearF == null || query.yearF == '' || query.yearF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                dateFromF = new Date(moment(query.yearF[0]).startOf('year').toDate());
+                dateToF = new Date(moment(query.yearF[1]).endOf('year').toDate());
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Loại không hợp lệ" });
+            }
+            //#endregion
+            if(dateFromF && dateToF){
+                //#region Lấy dữ liệu
+                //Hoàn thành
+                var completedData = await Appointment.aggregate([
+                    { $match: { 
+                        $and: [
+                            { dateTimeFrom: { $gte: dateFromF } },
+                            { dateTimeFrom: { $lte: dateToF } },
+                            { status: 'completed' },
+                        ]
+                    }},
+                    { $count: "count" }
+                ]);
+                //Không đến
+                var notArrivedData = await Appointment.aggregate([
+                    { $match: { 
+                        $and: [
+                            { dateTimeFrom: { $gte: dateFromF } },
+                            { dateTimeFrom: { $lte: dateToF } },
+                            { status: 'notarrived' },
+                        ]
+                    }},
+                    { $count: "count" }
+                ]);
+                //Đã hủy
+                var cancelledData = await Appointment.aggregate([
+                    { $match: { 
+                        $and: [
+                            { dateTimeFrom: { $gte: dateFromF } },
+                            { dateTimeFrom: { $lte: dateToF } },
+                            { status: 'cancelled' },
+                        ]
+                    }},
+                    { $count: "count" }
+                ]);
+
+                return res.status(200).json({ 
+                    success: true, 
+                    data: [
+                        {
+                            label: 'Hoàn thành',
+                            value: (completedData && completedData.length > 0) ? completedData[0].count : 0
+                        },
+                        {
+                            label: 'Không đến',
+                            value: (notArrivedData && notArrivedData.length > 0) ? notArrivedData[0].count : 0
+                        },
+                        {
+                            label: 'Đã hủy',
+                            value: (cancelledData && cancelledData.length > 0) ? cancelledData[0].count : 0
+                        },
+                    ]
+                });
+                //#endregion
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Có lỗi xảy ra" });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    }, 
+    getExaminationReport: async(req, res) => {
+        try{
+            var query = req.body;
+            var dateFromF = null;
+            var dateToF = null;
+            var data = [];
+            //#region Xét thời gian theo loại
+            if(query.typeF == 'day'){
+                if(query.dateF == null || query.dateF == '' || query.dateF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                //Xét thời gian
+                dateFromF = new Date(new Date(moment(query.dateF[0]).format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(query.dateF[1]).format('YYYY/MM/DD')).setHours(23,59,0,0));
+            }
+            else if(query.typeF == 'month'){
+                if(query.monthF == null || query.monthF == '' || query.monthF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                //Xét thời gian
+                dateFromF = new Date(moment(query.monthF[0]).startOf('month').toDate());
+                dateToF = new Date(moment(query.monthF[1]).endOf('month').toDate());
+
+            }
+            else if(query.typeF == 'year'){
+                if(query.yearF == null || query.yearF == '' || query.yearF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                dateFromF = new Date(moment(query.yearF[0]).startOf('year').toDate());
+                dateToF = new Date(moment(query.yearF[1]).endOf('year').toDate());
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Loại không hợp lệ" });
+            }
+            //#endregion
+            if(dateFromF && dateToF){
+                //#region Xét label data
+                var from = dateFromF;
+                var to = dateToF;
+                do {
+                    if(query.typeF == 'day'){
+                        data.push({
+                            label: moment(from).format('DD/MM/YYYY').toString(),
+                            count: 0
+                        });
+                        from = moment(from).add(1, 'd');
+                    }
+                    else if(query.typeF == 'month'){
+                        data.push({
+                            label: moment(from).format('MM/YYYY').toString(),
+                            count: 0
+                        });
+                        from = moment(from).add(1, 'M');
+                    }
+                    else if(query.typeF == 'year'){
+                        data.push({
+                            label: moment(from).format('YYYY').toString(),
+                            count: 0
+                        });
+                        from = moment(from).add(1, 'y');
+                    }
+                } while (moment(moment(from).format('YYYY-MM-DD')).isSameOrBefore(moment(to).format('YYYY-MM-DD')));
+                //#endregion
+
+                //#region Lấy dữ liệu
+                var examinationData = await Examination.aggregate([
+                    { $match: { 
+                        $and: [
+                            { completedAt: { $gte: dateFromF } },
+                            { completedAt: { $lte: dateToF } },
+                            { status: 'completed' },
+                        ]
+                    }},
+                    {
+                        $group: {
+                            _id: { $dateToString: { 
+                                format: query.typeF == 'month' ? "%m/%Y" : query.typeF == 'year' ? '%Y' : '%d/%m/%Y', 
+                                date: "$completedAt" 
+                            }},
+                            count: { $sum: 1 }
+                        }
+                    }
+                ]);
+                //#endregion
+
+                data = data.map(item => {
+                    var dataItem = examinationData.find(e => e._id == item.label);
+                    return {
+                        ...item,
+                        count: dataItem ? dataItem.count : 0
+                    }
+                });
+
+                return res.status(200).json({ 
+                    success: true, 
+                    data: data
+                });
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Có lỗi xảy ra" });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    }, 
 }
 
 module.exports = ReportController;
