@@ -7,6 +7,8 @@ const Examination = require('../models/tw_Examination');
 const Payment = require('../models/tw_Payment');
 const PaymentSlip = require('../models/tw_PaymentSlip');
 const Receipts = require('../models/tw_Receipts');
+const Service = require('../models/tw_Service');
+const ServiceGroup = require('../models/tw_ServiceGroup');
 const moment = require('moment');
 const IsNullOrEmpty = require('../helpers/IsNullOrEmpty');
 
@@ -549,6 +551,163 @@ const ReportController = {
             return res.status(400).json({ success: false, error: err });
         }
     }, 
+    getServiceGroupReport: async(req, res) => {
+        try{
+            var query = req.body;
+            var dateFromF = null;
+            var dateToF = null;
+            var data = [];
+            var reportData = [];
+            //#region Xét thời gian theo loại
+            if(query.typeF == 'day'){
+                if(query.dateF == null || query.dateF == '' || query.dateF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                //Xét thời gian
+                dateFromF = new Date(new Date(moment(query.dateF[0]).format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(query.dateF[1]).format('YYYY/MM/DD')).setHours(23,59,0,0));
+            }
+            else if(query.typeF == 'month'){
+                if(query.monthF == null || query.monthF == '' || query.monthF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                //Xét thời gian
+                dateFromF = new Date(moment(query.monthF[0]).startOf('month').toDate());
+                dateToF = new Date(moment(query.monthF[1]).endOf('month').toDate());
+
+            }
+            else if(query.typeF == 'year'){
+                if(query.yearF == null || query.yearF == '' || query.yearF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                dateFromF = new Date(moment(query.yearF[0]).startOf('year').toDate());
+                dateToF = new Date(moment(query.yearF[1]).endOf('year').toDate());
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Loại không hợp lệ" });
+            }
+            //#endregion
+        
+            if(dateFromF && dateToF){
+                var serviceGroupData = await ServiceGroup.find({ isActive: true });
+                //Nhóm dịch vụ theo phiếu khám
+                var examinationData = await Examination.aggregate([
+                    { $match: { 
+                        $and: [
+                            { completedAt: { $gte: dateFromF } },
+                            { completedAt: { $lte: dateToF } },
+                            { status: 'completed' },
+                        ]
+                    }}
+                ]);
+
+                if(examinationData && examinationData.length > 0){
+                    examinationData.forEach((item) => {
+                        data.push(...item.diagnosisTreatment);
+                    });
+                }
+
+                //#region Lấy dữ liệu
+                serviceGroupData.forEach((item) => {
+                    var count = data.filter((e) => e.serviceGroupId.equals(item._id)).length;
+                    reportData.push({
+                        label: item.name,
+                        count: count || 0
+                    });
+                });
+
+                return res.status(200).json({ 
+                    success: true, 
+                    data: reportData
+                });
+                //#endregion
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Có lỗi xảy ra" });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getDentistReport: async(req, res) => {
+        try{
+            var query = req.body;
+            var dateFromF = null;
+            var dateToF = null;
+            var reportData = [];
+            //#region Xét thời gian theo loại
+            if(query.typeF == 'day'){
+                if(query.dateF == null || query.dateF == '' || query.dateF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                //Xét thời gian
+                dateFromF = new Date(new Date(moment(query.dateF[0]).format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(query.dateF[1]).format('YYYY/MM/DD')).setHours(23,59,0,0));
+            }
+            else if(query.typeF == 'month'){
+                if(query.monthF == null || query.monthF == '' || query.monthF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                //Xét thời gian
+                dateFromF = new Date(moment(query.monthF[0]).startOf('month').toDate());
+                dateToF = new Date(moment(query.monthF[1]).endOf('month').toDate());
+
+            }
+            else if(query.typeF == 'year'){
+                if(query.yearF == null || query.yearF == '' || query.yearF.length <= 0){
+                    return res.status(200).json({ success: false, error: "Hãy nhập thời gian" });
+                }
+                dateFromF = new Date(moment(query.yearF[0]).startOf('year').toDate());
+                dateToF = new Date(moment(query.yearF[1]).endOf('year').toDate());
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Loại không hợp lệ" });
+            }
+            //#endregion
+        
+            if(dateFromF && dateToF){
+                var dentistData = await User.find({ isActive: true, isDentist: true });
+
+                var examinationData = await Examination.aggregate([
+                    { $match: { 
+                        $and: [
+                            { completedAt: { $gte: dateFromF } },
+                            { completedAt: { $lte: dateToF } },
+                            { status: 'completed' },
+                        ]
+                    }},
+                    {
+                        $group: {
+                            _id: "$dentistId",
+                            count: { $sum: 1 }
+                        }
+                    }
+                ]);
+
+                //#region Lấy dữ liệu
+                dentistData.forEach((item) => {
+                    var data = examinationData.find((e) => e._id.equals(item._id));
+                    reportData.push({
+                        label: item.name,
+                        count: data ? (data.count || 0) : 0
+                    });
+                });
+
+                return res.status(200).json({ 
+                    success: true, 
+                    data: reportData
+                });
+                //#endregion
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Có lỗi xảy ra" });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
 }
 
 module.exports = ReportController;
