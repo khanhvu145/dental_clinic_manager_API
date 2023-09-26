@@ -4,6 +4,7 @@ const GetAccessToken = require('../middlewares/GetAccessToken');
 const verifyToken = require('../middlewares/verifyToken');
 const router = express.Router();
 
+router.post('/groupGetByTextSearch', verifyToken, serviceController.groupGetByTextSearch);
 router.post('/create', GetAccessToken('service', 'create'), serviceController.create);
 router.post('/getByQuery', verifyToken, serviceController.getByQuery);
 router.get('/getById/:id/', verifyToken, serviceController.getById);
