@@ -295,7 +295,10 @@ const CustomerController = {
             }
             else{
                 //Kiểm tra trùng CMND/CCCD
-                var existsCustomer = await Customer.findOne({ physicalId: formData.physicalId });
+                var existsCustomer = await Customer.findOne({ 
+                    physicalId: formData.physicalId,
+                    _id: { $ne: formData._id }
+                });
                 if(existsCustomer != null){
                     return res.status(200).json({ success: false, error: "Khách hàng trùng CMND/CCCD" });
                 }
