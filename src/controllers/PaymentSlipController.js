@@ -7,6 +7,7 @@ const PaymentSlip = require('../models/tw_PaymentSlip');
 const Receipts = require('../models/tw_Receipts');
 const moment = require('moment');
 const IsNullOrEmpty = require('../helpers/IsNullOrEmpty');
+const exportExcel = require('../helpers/exportExcel');
 const mongoose = require('mongoose');
 
 const PaymentSlipController = {
@@ -19,8 +20,8 @@ const PaymentSlipController = {
             var dateToF = null;
             
             if(filters.dateF != null && filters.dateF != '' && filters.dateF.length > 0){
-                dateFromF = new Date(moment(filters.dateF[0]).format('YYYY/MM/DD'));
-                dateToF = new Date(moment(filters.dateF[1]).format('YYYY/MM/DD'));
+                dateFromF = new Date(new Date(moment(filters.dateF[0]).format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(filters.dateF[1]).format('YYYY/MM/DD')).setHours(23,59,0,0));
             }
 
             var data = await PaymentSlip.find({
@@ -189,6 +190,89 @@ const PaymentSlipController = {
                 return res.status(200).json({ success: false, error: err });
             });
             //#endregion
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    export: async (req, res) => {
+        try{
+            var filters = req.body.filters;
+            var sorts = req.body.sorts;
+            var dateFromF = null;
+            var dateToF = null;
+            if(filters.dateF != null && filters.dateF != '' && filters.dateF.length > 0){
+                dateFromF = new Date(new Date(moment(filters.dateF[0]).format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(filters.dateF[1]).format('YYYY/MM/DD')).setHours(23,59,0,0));
+            }
+
+            //Lấy dữ liệu
+            const data = await PaymentSlip.find({
+                $and: [
+                    { code: { $regex: filters.codeF, $options:"i" } },
+                    dateFromF ? { createdAt: { $gte: dateFromF } } : {},
+                    dateToF ? { createdAt: { $lte: dateToF } } : {},
+                    filters.statusF != 'all' ? { status: filters.statusF } : {}
+                ]
+            }).sort(sorts);
+            
+            const workSheetColumnNames = [
+                "Mã phiếu chi",
+                "Số tiền chi",
+                "Đơn vị nhận tiền",
+                "Địa chỉ",
+                "Chứng từ gốc",
+                "Nội dung",
+                "Trạng thái",
+                "Ngày chi"
+            ];
+
+            const excelData = data.map(item => {
+                return [
+                    item.code || '',
+                    item.amount || '',
+                    item.receivingUnit || '',
+                    item.addressUnit || '',
+                    item.originalDocuments && item.originalDocuments.length > 0 ? item.originalDocuments.join(', ') : '',
+                    item.content || '',
+                    item.status == 'completed' ? 'Hoàn thành' : item.status == 'cancelled' ? 'Đã hủy' : '',
+                    item.date ? moment(item.date).format('DD/MM/YYYY') : '',
+                ];
+            });
+
+            var file = await exportExcel(excelData, workSheetColumnNames, 'data');
+
+            return res.status(200).json({ success: true, message: 'Xuất dữ liệu thành công', data: file });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    getTemplateImport: async (req, res) => {
+        try{
+            const workSheetColumnNames = [
+                "Đơn vị nhận tiền *",
+                "Địa chỉ đơn vị",
+                "Số tiền chi *",
+                "Chứng từ gốc",
+                "Nội dung chi *",
+                "Trạng thái (new/completed) *"
+            ];
+
+            const excelData = [
+                [
+                    'Công ty ABC',
+                    'Thủ Đức, tp.HCM',
+                    100000000,
+                    'CTG001,CTG002,CTG003',
+                    'Thanh toán lương T1/2023',
+                    'new'
+                ]
+            ];
+
+            var file = await exportExcel(excelData, workSheetColumnNames, 'data');
+
+            return res.status(200).json({ success: true, message: 'Xuất dữ liệu thành công', data: file });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });

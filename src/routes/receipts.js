@@ -4,6 +4,7 @@ const GetAccessToken = require('../middlewares/GetAccessToken');
 const verifyToken = require('../middlewares/verifyToken');
 const router = express.Router();
 
+router.post('/export', GetAccessToken('receipts', 'export'), receiptsController.export);
 router.post('/cancel', GetAccessToken('receipts', 'cancelReceipts'), receiptsController.cancel);
 router.get('/getReceiptsByPaymentId/:id/', verifyToken, receiptsController.getReceiptsByPaymentId);
 router.get('/getById/:id/', verifyToken, receiptsController.getById);
