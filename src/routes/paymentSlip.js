@@ -2,8 +2,10 @@ const express = require('express');
 const PaymentSlipController = require('../controllers/PaymentSlipController');
 const GetAccessToken = require('../middlewares/GetAccessToken');
 const verifyToken = require('../middlewares/verifyToken');
+const multer = require('../middlewares/Multer');
 const router = express.Router();
 
+router.post('/import', GetAccessToken('payment', 'import'), multer.single('importFile'), PaymentSlipController.import);
 router.post('/getTemplateImport', GetAccessToken('payment', 'import'), PaymentSlipController.getTemplateImport);
 router.post('/export', GetAccessToken('payment', 'export'), PaymentSlipController.export);
 router.post('/cancel', GetAccessToken('payment', 'cancel'), PaymentSlipController.cancel);

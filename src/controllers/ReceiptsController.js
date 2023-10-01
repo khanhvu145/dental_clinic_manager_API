@@ -319,7 +319,7 @@ const ReceiptsController = {
                 ];
             });
 
-            var file = await exportExcel(excelData, workSheetColumnNames, 'data');
+            var file = await exportExcel(excelData, workSheetColumnNames, [], 'data');
 
             return res.status(200).json({ success: true, message: 'Xuất dữ liệu thành công', data: file });
         }

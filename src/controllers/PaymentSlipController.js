@@ -9,6 +9,7 @@ const moment = require('moment');
 const IsNullOrEmpty = require('../helpers/IsNullOrEmpty');
 const exportExcel = require('../helpers/exportExcel');
 const mongoose = require('mongoose');
+const xlsx = require('xlsx');
 
 const PaymentSlipController = {
     getByQuery: async(req, res) => {
@@ -224,7 +225,9 @@ const PaymentSlipController = {
                 "Chứng từ gốc",
                 "Nội dung",
                 "Trạng thái",
-                "Ngày chi"
+                "Ngày chi",
+                "Ngày hủy",
+                "Lý do hủy"
             ];
 
             const excelData = data.map(item => {
@@ -235,12 +238,14 @@ const PaymentSlipController = {
                     item.addressUnit || '',
                     item.originalDocuments && item.originalDocuments.length > 0 ? item.originalDocuments.join(', ') : '',
                     item.content || '',
-                    item.status == 'completed' ? 'Hoàn thành' : item.status == 'cancelled' ? 'Đã hủy' : '',
+                    item.status == 'new' ? 'Mới' : item.status == 'completed' ? 'Hoàn thành' : item.status == 'cancelled' ? 'Đã hủy' : '',
                     item.date ? moment(item.date).format('DD/MM/YYYY') : '',
+                    item.cancelledAt ? moment(item.cancelledAt).format('DD/MM/YYYY') : '',
+                    item.cancelReason || '',
                 ];
             });
 
-            var file = await exportExcel(excelData, workSheetColumnNames, 'data');
+            var file = await exportExcel(excelData, workSheetColumnNames, [], 'data');
 
             return res.status(200).json({ success: true, message: 'Xuất dữ liệu thành công', data: file });
         }
@@ -259,6 +264,15 @@ const PaymentSlipController = {
                 "Trạng thái (new/completed) *"
             ];
 
+            const workSheetColumnKeys = [
+                "receivingUnit",
+                "addressUnit",
+                "amount",
+                "originalDocuments",
+                "content",
+                "status"
+            ];
+
             const excelData = [
                 [
                     'Công ty ABC',
@@ -270,9 +284,130 @@ const PaymentSlipController = {
                 ]
             ];
 
-            var file = await exportExcel(excelData, workSheetColumnNames, 'data');
+            var file = await exportExcel(excelData, workSheetColumnNames, workSheetColumnKeys, 'data');
 
             return res.status(200).json({ success: true, message: 'Xuất dữ liệu thành công', data: file });
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    import: async (req, res) => {
+        try{
+            if(req.file){
+                const workSheetColumnNames = [
+                    "Đơn vị nhận tiền *",
+                    "Địa chỉ đơn vị",
+                    "Số tiền chi *",
+                    "Chứng từ gốc",
+                    "Nội dung chi *",
+                    "Trạng thái (new/completed) *",
+                    "Kết quả"
+                ];
+                const workSheetColumnKeys = [
+                    "receivingUnit",
+                    "addressUnit",
+                    "amount",
+                    "originalDocuments",
+                    "content",
+                    "status",
+                    "result"
+                ];
+                const excelData = [];
+                var buffer = req.file.buffer;
+                const workbook = xlsx.read(buffer);
+                let worksheets = workbook.SheetNames.map(sheetName => {
+                    return { sheetName, data: xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]) };
+                });
+
+                if(worksheets && worksheets[0].data && worksheets[0].data.length > 0){
+                    for(var i = 1; i < worksheets[0].data.length; i++){
+                        var error = 0;
+                        var item = worksheets[0].data[i];
+                        //#region Kiểm tra dữ liệu
+                        if(item.receivingUnit == null || item.receivingUnit == '') {
+                            error++;
+                        }
+                        if(item.amount == null || item.amount == '' || parseFloat(item.amount) == 0) {
+                            error++;
+                        }
+                        if(item.content == null || item.content == '') {
+                            error++;
+                        }
+                        if(item.status != 'new' && item.status != 'completed') {
+                            error++;
+                        }
+                        if(error > 0){
+                            excelData.push([
+                                item.receivingUnit,
+                                item.addressUnit,
+                                item.amount,
+                                item.originalDocuments,
+                                item.content,
+                                item.status,
+                                'Thất bại. Dữ liệu nhập không đúng'
+                            ]);
+                            continue;
+                        }
+                        //#endregion
+
+                        //#region Xử lý
+                        const newPayment = await new PaymentSlip({
+                            amount: item.amount ? parseFloat(item.amount) : parseFloat(0),
+                            content: item.content,
+                            status: item.status,
+                            type: 'other',
+                            receivingUnit: item.receivingUnit,
+                            addressUnit: item.addressUnit,
+                            originalDocuments: item.originalDocuments && item.originalDocuments.length > 0 ? item.originalDocuments.split(',') : [],
+                            createdAt: Date.now(),
+                            createdBy: req.username ? req.username : '',
+                            date: item.status == 'completed' ? Date.now() : null,
+                        }).save();
+                        if(newPayment && newPayment._id){
+                            await PaymentSlip.updateOne(
+                                { _id: newPayment._id }, 
+                                {
+                                    $set: { 
+                                        code: 'PC' + newPayment._id.toString().slice(-5).toUpperCase()
+                                    }
+                                }
+                            );
+                            excelData.push([
+                                item.receivingUnit,
+                                item.addressUnit,
+                                item.amount,
+                                item.originalDocuments,
+                                item.content,
+                                item.status,
+                                'Thành công'
+                            ]);
+                            continue;
+                        }
+                        else{
+                            excelData.push([
+                                item.receivingUnit,
+                                item.addressUnit,
+                                item.amount,
+                                item.originalDocuments,
+                                item.content,
+                                item.status,
+                                'Thất bại. Có lỗi xảy ra trong quá trình nhập'
+                            ]);
+                            continue;
+                        }
+                        //#endregion
+                    }
+                }
+
+                //Xuất file kết quả
+                var file = await exportExcel(excelData, workSheetColumnNames, workSheetColumnKeys, 'data');
+
+                return res.status(200).json({ success: true, message: 'Nhập dữ liệu thành công', data: file });
+            }
+            else{
+                return res.status(400).json({ success: false, error: 'Có lỗi xảy ra' });
+            }
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
