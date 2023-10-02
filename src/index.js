@@ -26,6 +26,7 @@ const informationConfigRoute = require('./routes/informationConfig');
 const appointmentBookingRoute = require('./routes/appointmentBooking');
 const schedule = require('node-schedule');
 const axios = require('axios');
+const swaggerDocs = require('../swagger.js');
 
 //CONNECT DATABASE
 dotenv.config();
@@ -67,6 +68,7 @@ app.get("/", (req, res) => {
 httpServer.listen(process.env.PORT || 8000, () => {
     const port = process.env.PORT || 8000;
     console.log(`Server Started at ${port}`)
+    swaggerDocs(app, port)
 })
 
 // Job lịch hẹn
