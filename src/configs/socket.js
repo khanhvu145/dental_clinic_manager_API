@@ -1,4 +1,5 @@
 const socketIO = require('socket.io');
+const jwt = require('jsonwebtoken');
 
 module.exports = (httpServer) => {
   const io = socketIO(httpServer, {
@@ -9,19 +10,26 @@ module.exports = (httpServer) => {
     },
   });
 
-  io.on("connection", (socket) => {
-    console.log('Connection Socket.io...');
-    socket.on('disconnect', () => {
-      console.log('Disconnect Socket.io...');
-    });
-
-    const token = socket.handshake.auth.token;
-    const user = {
-      socketId: socket.id,
-      username: token,
+  io.on("connection", async (socket) => {
+    console.log(`User ${socket.id} is connected`);
+    const bearerHeader = socket.handshake.auth.token;
+    const bearer = bearerHeader.split(' ');
+    const token = bearer[1];
+    try{
+      const user = await jwt.verify(token, 'secretKey');
+      socket.user = user.data;
     }
+    catch (e) {
+      // if token is invalid, close connection
+      console.log('error', e.message);
+    }
+    socket.on('handleUpdateAppointment', function () {
+      socket.broadcast.emit('notification', `User ${socket.user.username} gửi thông báo`);
+    })
 
-    socket.emit('socketUser', user);
+    socket.on('disconnect', () => {
+      console.log(`User ${socket.id} is disconnected`);
+    });
   });
 };
 

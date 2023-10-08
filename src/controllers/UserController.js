@@ -1,10 +1,13 @@
 const User = require('../models/tw_User');
+const Notification = require('../models/tw_Notification');
 const bcrypt = require('bcrypt');
 const salt = bcrypt.genSaltSync(10);
 const firebaseDB = require('../helpers/firebase');
 const uploadFile = require('../helpers/uploadFile');
 const getFileUpload = require('../helpers/getFileUpload');
 const moment = require('moment');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 const UserController = {
     create: async(req, res) => {
@@ -309,7 +312,56 @@ const UserController = {
         catch(err){
             return res.status(400).json({ success: false, error: err });
         }
-    }
+    },
+    getNotifyByQuery: async(req, res) => {
+        try{
+            var user = await jwt.verify(req.token, 'secretKey');
+            if(user != null && user.data != null){
+                var size = req.body.size;
+                var from = req.body.from;
+    
+                var data = await Notification.find({ userId: mongoose.Types.ObjectId(user.data._id) }).sort({ "createdAt": -1 }).limit(size).skip(from);
+    
+                return res.status(200).json({ success: true, data: data });
+            }
+            else{
+                return res.status(200).json({ success: true, data: [] });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    updateSeenStatus: async(req, res) => {
+        try{
+            var user = await jwt.verify(req.token, 'secretKey');
+            if(user != null && user.data != null){
+                var data = await Notification.UpdateSeenStatus(req.body.id, user.data.username);
+                return res.status(200).json({ success: true, data: data ? data.data : {} });
+            }
+            else{
+                return res.status(200).json({ success: true, data: {} });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
+    updateSeenStatusAll: async(req, res) => {
+        try{
+            var user = await jwt.verify(req.token, 'secretKey');
+            if(user != null && user.data != null){
+                var data = await Notification.UpdateSeenStatusAll(user.data);
+                return res.status(200).json({ success: true, data: data ? data.data : {} });
+            }
+            else{
+                return res.status(200).json({ success: true, data: {} });
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
 }
 
 module.exports = UserController;

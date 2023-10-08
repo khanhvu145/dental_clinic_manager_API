@@ -6,6 +6,7 @@ const tw_Customer = require('../models/tw_Customer');
 const Customer = tw_Customer.CustomerModel;
 const CustomerLog = tw_Customer.CustomerLogModel;
 const AppointmentConfigs = require('../models/tw_Appointment_Config');
+const Notification = require('../models/tw_Notification');
 const User = require('../models/tw_User');
 const GeneralConfig = require('../models/tw_GeneralConfig');
 const IsNullOrEmpty = require('../helpers/IsNullOrEmpty');
@@ -414,6 +415,11 @@ tw_Appointment_Booking.statics.createBooking = async function(formData, username
             {
                 await AppointmentLogModel.CreateLog(data._id, 'create', log, username);
             }
+            //#endregion
+
+            //#region Tạo thông báo cho nha sĩ phụ trách
+            var content = `Bạn có lịch hẹn mới - <span style="font-weight:bold;">${data.code}</span>`
+            await Notification.CreateNotification(data._id, data.dentistId, 'Lịch hẹn mới', content, 'appointment', username);
             //#endregion
 
             return { code: 1, data: data, error: '' };

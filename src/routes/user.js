@@ -32,6 +32,10 @@ const router = express.Router();
  *      200:
  *        description: Successfully
  */
+
+router.post('/updateSeenStatusAll', verifyToken, userController.updateSeenStatusAll);
+router.post('/updateSeenStatus', verifyToken, userController.updateSeenStatus);
+router.post('/getNotifyByQuery', verifyToken, userController.getNotifyByQuery);
 router.post('/create', GetAccessToken('users', 'create'), multer.single('imageFile'), userController.create);
 router.put('/update', GetAccessToken('users', 'update'), multer.single('imageFile'), userController.update);
 router.get('/getById/:id/', verifyToken, userController.getById);
