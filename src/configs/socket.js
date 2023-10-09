@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 
 module.exports = (httpServer) => {
   const io = socketIO(httpServer, {
-    allowEIO3: true,
+    // allowEIO3: true,
     cors: {
       origin: true,
       credentials: true,
