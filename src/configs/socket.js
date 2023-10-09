@@ -3,12 +3,19 @@ const jwt = require('jsonwebtoken');
 
 module.exports = (httpServer) => {
   const io = socketIO(httpServer, {
-    // allowEIO3: true,
-    cors: {
-      origin: true,
-      credentials: true,
-    },
+    origin: '*:*',
+      requestCert: true,
+      rejectUnauthorized: false,
+      transports: 
+        ['websocket',
+        'flashsocket',
+        'htmlfile',
+        'xhr-polling',
+        'jsonp-polling',
+        'polling']
   });
+
+  io.origins('*:*');
 
   io.on("connection", async (socket) => {
     console.log(`User ${socket.id} is connected`);
