@@ -34,8 +34,6 @@ mongoose.connect((process.env.MONGODB_URL), () => {
     console.log('Connecting to MongoDB...');
 })
 
-/////
-createSocketIO(httpServer);
 app.use(bodyParser.json({
     limit: "50mb"
 }));
@@ -70,6 +68,8 @@ httpServer.listen(process.env.PORT || 8000, () => {
     console.log(`Server Started at ${port}`)
     swaggerDocs(app, port)
 })
+/////
+createSocketIO(httpServer);
 
 // Job lịch hẹn
 const job = schedule.scheduleJob('0 0 * * *', async function(){
