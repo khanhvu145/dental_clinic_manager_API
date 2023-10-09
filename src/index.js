@@ -63,13 +63,13 @@ app.get("/", (req, res) => {
 });
 
 //LISTEN PORT
-httpServer.listen(process.env.PORT || 8000, () => {
+var server = app.listen(process.env.PORT || 8000, () => {
     const port = process.env.PORT || 8000;
     console.log(`Server Started at ${port}`)
     swaggerDocs(app, port)
 })
 /////
-createSocketIO(httpServer);
+createSocketIO(server);
 
 // Job lịch hẹn
 const job = schedule.scheduleJob('0 0 * * *', async function(){
