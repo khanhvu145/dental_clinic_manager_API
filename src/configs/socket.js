@@ -6,7 +6,7 @@ module.exports = (httpServer) => {
     allowEIO3: true,
     cors: {
       // origin: true,
-      origin: '*',
+      origin: 'https://glistening-scone-fe5e3f.netlify.app',
       credentials: true,
     },
   });
