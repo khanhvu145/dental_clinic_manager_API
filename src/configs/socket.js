@@ -15,7 +15,7 @@ module.exports = (httpServer) => {
         'polling']
   });
 
-  io.origins('*:*');
+  // io.origins('*:*');
 
   io.on("connection", async (socket) => {
     console.log(`User ${socket.id} is connected`);
