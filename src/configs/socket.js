@@ -5,8 +5,7 @@ module.exports = (httpServer) => {
   const io = socketIO(httpServer, {
     allowEIO3: true,
     cors: {
-      // origin: true,
-      origin: 'https://glistening-scone-fe5e3f.netlify.app',
+      origin: true,
       credentials: true,
     },
   });
