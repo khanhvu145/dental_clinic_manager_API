@@ -5,7 +5,8 @@ module.exports = (httpServer) => {
   const io = socketIO(httpServer, {
     allowEIO3: true,
     cors: {
-      origin: true,
+      // origin: true,
+      origin: '*',
       credentials: true,
     },
   });
