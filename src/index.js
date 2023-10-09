@@ -65,8 +65,8 @@ app.get("/", (req, res) => {
 });
 
 //LISTEN PORT
-httpServer.listen(process.env.PORT || 8000, () => {
-    const port = process.env.PORT || 8000;
+const listener = app.listen(process.env.PORT || 8080, () => {
+    const port = process.env.PORT || 8080;
     console.log(`Server Started at ${port}`)
     swaggerDocs(app, port)
 })
