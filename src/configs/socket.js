@@ -7,6 +7,8 @@ module.exports = (httpServer) => {
     cors: {
       origin: true,
       credentials: true,
+      transports: ['websocket'],
+      upgrade:false
     },
   });
 
