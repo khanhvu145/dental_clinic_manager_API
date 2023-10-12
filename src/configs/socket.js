@@ -12,6 +12,9 @@ module.exports = (httpServer) => {
     },
   });
 
+  //Danh sách người dùng kết nối
+  var socketIds = {};
+
   io.on("connection", async (socket) => {
     console.log(`User ${socket.id} is connected`);
     const bearerHeader = socket.handshake.auth.token;
@@ -20,18 +23,28 @@ module.exports = (httpServer) => {
     try{
       const user = await jwt.verify(token, 'secretKey');
       socket.user = user.data;
+      //Set người dùng vào danh sách
+      socketIds[socket.user.username] =  socket.id;
+      console.log(socketIds)
     }
     catch (e) {
       // if token is invalid, close connection
       console.log('error', e.message);
     }
-    socket.on('handleUpdateAppointment', function () {
-      socket.broadcast.emit('notification', `User ${socket.user.username} gửi thông báo`);
+
+    socket.join("_room" + socket.user.username);
+
+    socket.on('handleUpdateAppointment', function (username) {
+      // socket.broadcast.emit('notification', `User ${socket.user.username} gửi thông báo`);
+      const receiverId = socketIds[username]
+      socket.broadcast.to(receiverId).emit('notification', `User ${socket.user.username} gửi thông báo`);
     })
 
     socket.on('disconnect', () => {
       console.log(`User ${socket.id} is disconnected`);
     });
   });
+
+  return io;
 };
 

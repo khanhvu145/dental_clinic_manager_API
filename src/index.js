@@ -69,7 +69,8 @@ httpServer.listen(process.env.PORT || 8000, () => {
     swaggerDocs(app, port)
 })
 /////
-createSocketIO(httpServer);
+const socketio = createSocketIO(httpServer);
+app.set('socketio', socketio);
 
 // Job lịch hẹn
 const job = schedule.scheduleJob('0 0 * * *', async function(){

@@ -16,6 +16,7 @@ const fs = require('fs');
 const IsNullOrEmpty = require('../helpers/IsNullOrEmpty');
 const convertDateToCron = require('../helpers/convertDateToCron');
 const CronJob = require('cron').CronJob;
+const Notification = require('../models/tw_Notification');
 
 const AppointmentBookingController = {
     create: async(req, res) => {
@@ -94,6 +95,15 @@ const AppointmentBookingController = {
                 return res.status(200).json({ success: false, error: data.error });
             }
             //#endregion
+
+            //#region Gửi thông báo tới nha sĩ phụ trách
+            if(data && data.data){
+                var content = `Bạn có lịch hẹn mới - <span style="font-weight:bold;">${data.data.code}</span>`;
+                var result = await Notification.CreateNotification(data.data._id, data.data.dentistId, 'Lịch hẹn mới', content, 'appointment', req.username, req.app.get('socketio'));
+                console.log(result)
+            }
+            //#endregion
+
             //#region Log khách hàng
             if(data && data.data){
                 var log = [];

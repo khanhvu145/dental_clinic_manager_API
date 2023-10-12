@@ -417,11 +417,6 @@ tw_Appointment_Booking.statics.createBooking = async function(formData, username
             }
             //#endregion
 
-            //#region Tạo thông báo cho nha sĩ phụ trách
-            var content = `Bạn có lịch hẹn mới - <span style="font-weight:bold;">${data.code}</span>`
-            await Notification.CreateNotification(data._id, data.dentistId, 'Lịch hẹn mới', content, 'appointment', username);
-            //#endregion
-
             return { code: 1, data: data, error: '' };
         }
         else{
