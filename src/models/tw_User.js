@@ -70,6 +70,10 @@ const tw_User = new Schema({
         type: Boolean,
         default: false
     },
+    isAccountant: {
+        type: Boolean,
+        default: false
+    },
     isActive: {
         type: Boolean,
         default: true

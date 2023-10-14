@@ -92,6 +92,7 @@ const UserController = {
                     accessId: formData.accessId,
                     // position: formData.position ? formData.position : '',
                     isDentist: formData.isDentist,
+                    isAccountant: formData.isAccountant,
                     isActive: formData.isActive ? formData.isActive : true,
                     createdAt: Date.now(),
                     createdBy: req.username ? req.username : ''
@@ -142,6 +143,7 @@ const UserController = {
                     imageFile: null,
                     accessId: data.accessId,
                     isDentist: data.isDentist,
+                    isAccountant: data.isAccountant,
                     isActive: data.isActive,
                 };
                 return res.status(200).json({ success: true, data: newData });
@@ -225,6 +227,7 @@ const UserController = {
                         accessId: formData.accessId,
                         // position: formData.position ? formData.position : '',
                         isDentist: formData.isDentist,
+                        isAccountant: formData.isAccountant,
                         isActive: formData.isActive ? formData.isActive : true,
                         updatedAt: Date.now(),
                         updatedBy: req.username ? req.username : ''
@@ -253,6 +256,11 @@ const UserController = {
                 ]
             }).sort(sorts).limit(pages.size).skip(pages.from);
 
+            data = data.map(item => {
+                item.password = null;
+                return item;
+            });
+
             var total = await User.find({
                 $and: [
                     { code: { $regex: filters.codeF, $options:"i" } },
@@ -271,6 +279,10 @@ const UserController = {
     getDentist: async(req, res) => {
         try{
             var data = await User.find({ isActive: true, isDentist: true });
+            data = data.map(item => {
+                item.password = null;
+                return item;
+            });
             return res.status(200).json({ success: true, data: data });
         }
         catch(err){
@@ -294,6 +306,12 @@ const UserController = {
                     { isActive: true }
                 ]
             }).sort(sorts).limit(pages.size).skip(pages.from);
+
+            data = data.map(item => {
+                item.password = null;
+                return item;
+            });
+
             var total = await User.find({
                 $and: [
                     {

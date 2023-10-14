@@ -205,6 +205,20 @@ const PaymentController = {
             return res.status(400).json({ success: false, error: err });
         }
     },
+    getById: async(req, res) => {
+        try{
+            const data = await Payment.findById(req.params.id);
+            if(data) {
+                return res.status(200).json({ success: true, data: data });
+            }
+            else{
+                return res.status(400).json({success: false, error: 'Không có thông tin thanh toán'});
+            }
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
 };
 
 module.exports = PaymentController;

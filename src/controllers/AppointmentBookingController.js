@@ -377,6 +377,14 @@ const AppointmentBookingController = {
             }
             //#endregion
 
+            //#region Gửi thông báo tới nha sĩ phụ trách
+            if(data && data.data){
+                var content = `Lịch hẹn <span style="font-weight:bold;">${data.data.code}</span> đã được cập nhật thông tin`;
+                var result = await Notification.CreateNotification(data.data._id, data.data.dentistId, 'Chỉnh sửa lịch hẹn', content, 'appointment', req.username, req.app.get('socketio'));
+                console.log(result)
+            }
+            //#endregion
+
             //#region Log khách hàng
             if(data && data.data){
                 var log = [];
@@ -506,6 +514,14 @@ const AppointmentBookingController = {
                         //Logs
                         await AppointmentLog.CreateLog(data._id, 'Xác nhận đến khám', [], req.username);
 
+                        //#region Gửi thông báo tới nha sĩ phụ trách
+                        if(data){
+                            var content = `Lịch hẹn <span style="font-weight:bold;">${data.code}</span> xác nhận khách hàng đến khám`;
+                            var result = await Notification.CreateNotification(data._id, data.dentistId, 'Xác nhận đến khám', content, 'appointment', req.username, req.app.get('socketio'));
+                            console.log(result)
+                        }
+                        //#endregion
+
                         //#region Log khách hàng
                         if(data){
                             var log = [];
@@ -589,6 +605,14 @@ const AppointmentBookingController = {
 
                         //Logs
                         await AppointmentLog.CreateLog(data._id, 'Hoàn thành lịch hẹn', [], req.username);
+
+                        //#region Gửi thông báo tới nha sĩ phụ trách
+                        if(data){
+                            var content = `Lịch hẹn <span style="font-weight:bold;">${data.code}</span> đã được hoàn thành`;
+                            var result = await Notification.CreateNotification(data._id, data.dentistId, 'Hoàn thành lịch hẹn', content, 'appointment', req.username, req.app.get('socketio'));
+                            console.log(result)
+                        }
+                        //#endregion
 
                         //#region Log khách hàng
                         if(data){
@@ -691,6 +715,14 @@ const AppointmentBookingController = {
                         };
                         log.push(item);
                         await AppointmentLog.CreateLog(data._id, 'Hủy lịch hẹn', log, req.username);
+
+                        //#region Gửi thông báo tới nha sĩ phụ trách
+                        if(data){
+                            var content = `Lịch hẹn <span style="font-weight:bold;">${data.code}</span> đã được hủy`;
+                            var result = await Notification.CreateNotification(data._id, data.dentistId, 'Hủy hẹn', content, 'appointment', req.username, req.app.get('socketio'));
+                            console.log(result)
+                        }
+                        //#endregion
 
                         //#region Log khách hàng
                         if(data){

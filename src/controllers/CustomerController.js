@@ -17,6 +17,7 @@ const moment = require('moment');
 const IsNullOrEmpty = require('../helpers/IsNullOrEmpty');
 const mongoose = require('mongoose');
 const { file } = require('googleapis/build/src/apis/file');
+const Notification = require('../models/tw_Notification');
 
 const CustomerController = {
     create: async(req, res) => {
@@ -1153,6 +1154,18 @@ const CustomerController = {
                         var payment = await Payment.createPayment(paymentData);
                         if(payment.code <= 0){
                             return res.status(200).json({ success: false, error: payment.error });
+                        }
+                        else{
+                            //#region Gửi thông báo thanh toán tới lễ tân
+                            if(data){
+                                var customer = await Customer.findById(data.customerId);
+                                var receptionists = await User.find({ isActive: true, isAccountant: true });
+                                var content = `Khách hàng <span style="font-weight:bold;">${customer?.code}</span> phát sinh thanh toán mới`;
+                                receptionists.forEach(async(element) => {
+                                    var result = await Notification.CreateNotification(payment.data._id, element._id, 'Thanh toán mới', content, 'payment', req.username, req.app.get('socketio'));
+                                });
+                            }
+                            //#endregion
                         }
                     }
                     //#endregion
