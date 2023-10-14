@@ -24,6 +24,7 @@ const receiptsRoute = require('./routes/receipts');
 const reportRoute = require('./routes/report');
 const informationConfigRoute = require('./routes/informationConfig');
 const appointmentBookingRoute = require('./routes/appointmentBooking');
+const prescriptionConfigRoute = require('./routes/prescriptionConfig');
 const schedule = require('node-schedule');
 const axios = require('axios');
 const swaggerDocs = require('../swagger.js');
@@ -57,6 +58,7 @@ app.use('/api/receipts', receiptsRoute);
 app.use('/api/report', reportRoute);
 app.use('/api/informationConfig', informationConfigRoute);
 app.use('/api/appointmentBooking', appointmentBookingRoute);
+app.use('/api/prescriptionConfig', prescriptionConfigRoute);
 
 app.get("/", (req, res) => {
     res.json({ message: "THIS IS API FOR DENTAL CLINIC MANAGER WEB" });
