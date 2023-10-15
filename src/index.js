@@ -29,6 +29,8 @@ const schedule = require('node-schedule');
 const axios = require('axios');
 const swaggerDocs = require('../swagger.js');
 
+process.env.TZ = 'Asia/Bangkok';
+
 //CONNECT DATABASE
 dotenv.config();
 mongoose.connect((process.env.MONGODB_URL), () => {
