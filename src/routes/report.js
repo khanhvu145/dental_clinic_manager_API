@@ -4,6 +4,7 @@ const GetAccessToken = require('../middlewares/GetAccessToken');
 const verifyToken = require('../middlewares/verifyToken');
 const router = express.Router();
 
+router.post('/getRevenueExpenditureReportDetail', GetAccessToken('overview', 'view'), reportController.getRevenueExpenditureReportDetail);
 router.post('/getSourceReport', GetAccessToken('customerProfile', 'view'), reportController.getSourceReport);
 router.post('/getGroupReport', GetAccessToken('customerProfile', 'view'), reportController.getGroupReport);
 router.post('/getCityReport', GetAccessToken('customerProfile', 'view'), reportController.getCityReport);

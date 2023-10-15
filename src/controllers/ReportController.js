@@ -189,7 +189,8 @@ const ReportController = {
                         $group: {
                             _id: { $dateToString: { 
                                 format: query.typeF == 'month' ? "%m/%Y" : query.typeF == 'year' ? '%Y' : '%d/%m/%Y', 
-                                date: "$createdAt" 
+                                date: "$createdAt",
+                                timezone: "Asia/Bangkok" 
                             }},
                             totalAmount: { $sum: "$amount" }
                         }
@@ -208,7 +209,8 @@ const ReportController = {
                         $group: {
                             _id: { $dateToString: { 
                                 format: query.typeF == 'month' ? "%m/%Y" : query.typeF == 'year' ? '%Y' : '%d/%m/%Y', 
-                                date: "$date" 
+                                date: "$date",
+                                timezone: "Asia/Bangkok" 
                             }},
                             totalAmount: { $sum: "$amount" }
                         }
@@ -523,7 +525,8 @@ const ReportController = {
                         $group: {
                             _id: { $dateToString: { 
                                 format: query.typeF == 'month' ? "%m/%Y" : query.typeF == 'year' ? '%Y' : '%d/%m/%Y', 
-                                date: "$completedAt" 
+                                date: "$completedAt",
+                                timezone: "Asia/Bangkok" 
                             }},
                             count: { $sum: 1 }
                         }
@@ -1230,6 +1233,88 @@ const ReportController = {
             return res.status(400).json({ success: false, error: err });
         }
     }, 
+    getRevenueExpenditureReportDetail: async(req, res) => {
+        try{
+            var query = req.body;
+            var dateFromF = null;
+            var dateToF = null;
+            //#region Xét thời gian theo loại
+            if(query.typeF == 'day'){
+                //Xét thời gian
+                dateFromF = new Date(new Date(moment(query.label, 'DD MM YYYY').format('YYYY/MM/DD')).setHours(0,0,0,0));
+                dateToF = new Date(new Date(moment(query.label, 'DD MM YYYY').format('YYYY/MM/DD')).setHours(23,59,0,0));
+            }
+            else if(query.typeF == 'month'){
+                //Xét thời gian
+                dateFromF = new Date(moment(query.label, 'MM YYYY').startOf('month').toDate());
+                dateToF = new Date(moment(query.label, 'MM YYYY').endOf('month').toDate());
+
+            }
+            else if(query.typeF == 'year'){
+                dateFromF = new Date(moment(query.label, 'YYYY').startOf('year').toDate());
+                dateToF = new Date(moment(query.label, 'YYYY').endOf('year').toDate());
+            }
+            else{
+                return res.status(200).json({ success: false, error: "Loại không hợp lệ" });
+            }
+            //#endregion
+
+            //#region Xử lý
+            if(dateFromF && dateToF){
+                //Doanh thu
+                const revenue = await Receipts.aggregate([
+                    { $lookup: {
+                        from: "tw_customers",
+                        localField: "customerId",
+                        foreignField: "_id",
+                        as: "customerInfo"
+                    }},
+                    {
+                        $addFields: {
+                            "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
+                            "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
+                        }
+                    },
+                    { $project: { 
+                        customerInfo: 0
+                    }},
+                    { $match: { 
+                        $and: [
+                            { createdAt: { $gte: dateFromF } },
+                            { createdAt: { $lte: dateToF } },
+                            { status: 'paid' },
+                        ]
+                    }}
+                ]);
+                //Chi phí
+                const expenditure = await PaymentSlip.aggregate([
+                    { $match: { 
+                        $and: [
+                            { date: { $gte: dateFromF } },
+                            { date: { $lte: dateToF } },
+                            { status: 'completed' },
+                        ]
+                    }}
+                ]);
+                return res.status(200).json({ 
+                    success: true, 
+                    revenue: revenue,
+                    expenditure: expenditure
+                });
+            }
+            else{
+                return res.status(200).json({ 
+                    success: true, 
+                    revenue: [],
+                    expenditure: []
+                });
+            }
+            //#endregion
+        }
+        catch(err){
+            return res.status(400).json({ success: false, error: err });
+        }
+    },
 }
 
 module.exports = ReportController;
