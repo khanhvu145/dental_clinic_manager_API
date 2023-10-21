@@ -193,14 +193,53 @@ const ReceiptsController = {
                 }},
                 { $match: { 
                     $and: [
-                        { paymentId: mongoose.Types.ObjectId(req.params.id) },
+                        { paymentId: mongoose.Types.ObjectId(req.body.id) },
                         { status: { $ne: 'cancelled' } }
                     ]
                 }},
-                { $sort: { createdAt: -1 }},
+                { $sort: { createdAt: req.body.sorts }},
+                { $limit: (req.body.pages.from + req.body.pages.size) },
+                { $skip: req.body.pages.from }
+            ]);
+
+            var total = await Receipts.aggregate([
+                { $lookup: {
+                    from: "tw_customers",
+                    localField: "customerId",
+                    foreignField: "_id",
+                    as: "customerInfo"
+                }},
+                { $lookup: {
+                    from: "tw_examinations",
+                    localField: "examinationId",
+                    foreignField: "_id",
+                    as: "examinationInfo"
+                }},
+                {
+                    $addFields: {
+                        "customerCode": { $arrayElemAt: ["$customerInfo.code", 0] },
+                        "customerName": { $arrayElemAt: ["$customerInfo.name", 0] },
+                        "customerBirthday": { $arrayElemAt: ["$customerInfo.birthday", 0] },
+                        "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
+                        "customerPhysicalId": { $arrayElemAt: ["$customerInfo.physicalId", 0] },
+                        "customerPhone": { $arrayElemAt: ["$customerInfo.phone", 0] },
+                        "examinationCode": { $arrayElemAt: ["$examinationInfo.code", 0] }
+                    }
+                },
+                { $project: { 
+                    customerInfo: 0,
+                    examinationInfo: 0
+                }},
+                { $match: { 
+                    $and: [
+                        { paymentId: mongoose.Types.ObjectId(req.body.id) },
+                        { status: { $ne: 'cancelled' } }
+                    ]
+                }},
+                { $count: "count" }
             ]);
             
-            return res.status(200).json({ success: true, data: data });
+            return res.status(200).json({ success: true, data: data, total: total.length > 0 ? total[0].count : 0 });
         }
         catch(err){
             return res.status(400).json({ success: false, error: err });
