@@ -63,7 +63,8 @@ app.use('/api/appointmentBooking', appointmentBookingRoute);
 app.use('/api/prescriptionConfig', prescriptionConfigRoute);
 
 app.get("/", (req, res) => {
-    res.json({ message: "THIS IS API FOR DENTAL CLINIC MANAGER WEB" });
+    // res.json({ message: "THIS IS API FOR DENTAL CLINIC MANAGER WEB" });
+    res.redirect('/docs');
 });
 
 //LISTEN PORT
