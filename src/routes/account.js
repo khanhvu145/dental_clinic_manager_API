@@ -39,6 +39,25 @@ const router = express.Router();
  *        description: Server error
  */
 router.post('/login', accountController.login);
+/**
+ * @openapi
+ * '/api/account/info':
+ *  get:
+ *     tags:
+ *      - Account
+ *     summary: Get info account
+ *     security:
+ *      - bearerAuth: []
+ *     responses:
+ *      200:
+ *        description: Successfully
+ *      400:
+ *        description: Error
+ *      403:
+ *        description: Invalid token / Not have access
+ *      500:
+ *        description: Server error
+ */
 router.get('/info', verifyToken, accountController.info);
 /**
  * @openapi
