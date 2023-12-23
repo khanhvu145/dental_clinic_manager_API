@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const mongooseDelete = require('mongoose-delete');
 const Schema = mongoose.Schema;
+const moment = require('moment');
 
 const tw_PaymentSlip = new Schema({
     code: { 
@@ -82,7 +83,7 @@ tw_PaymentSlip.statics.createPaymentSlip = async function(data){
             { _id: newPayment._id }, 
             {
                 $set: { 
-                    code: 'PC' + newPayment._id.toString().slice(-5).toUpperCase()
+                    code: `PC/${moment().format('MMYYYY')}/${newPayment._id.toString().slice(-5).toUpperCase()}`
                 }
             }
         );

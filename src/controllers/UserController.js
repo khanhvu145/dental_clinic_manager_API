@@ -101,7 +101,7 @@ const UserController = {
                     { _id: newData._id }, 
                     {
                         $set: { 
-                            code: 'EMP-' + newData._id.toString().slice(-5).toUpperCase()
+                            code: `EMP/${moment().format('MMYYYY')}/${newData._id.toString().slice(-5).toUpperCase()}`
                         }
                     }
                 );

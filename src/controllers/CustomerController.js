@@ -91,7 +91,7 @@ const CustomerController = {
                     { _id: newData._id }, 
                     {
                         $set: { 
-                            code: 'CUS-' + newData._id.toString().slice(-5).toUpperCase()
+                            code: `CUS/${moment().format('MMYYYY')}/${newData._id.toString().slice(-5).toUpperCase()}`
                         }
                     }
                 );
@@ -518,7 +518,7 @@ const CustomerController = {
                 { _id: newData._id }, 
                 {
                     $set: { 
-                        code: 'EXAM' + newData._id.toString().slice(-5).toUpperCase()
+                        code: `EXM/${moment().format('MMYYYY')}/${newData._id.toString().slice(-5).toUpperCase()}`
                     }
                 }
             );

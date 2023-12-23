@@ -247,7 +247,7 @@ tw_Appointment_Booking.statics.createBooking = async function(formData, username
             { _id: newAppointment._id }, 
             {
                 $set: { 
-                    code: 'APM' + newAppointment._id.toString().slice(-5).toUpperCase()
+                    code: `APM/${moment().format('MMYYYY')}/${newAppointment._id.toString().slice(-5).toUpperCase()}`
                 }
             }
         );

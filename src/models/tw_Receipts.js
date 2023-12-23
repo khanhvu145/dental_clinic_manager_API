@@ -7,6 +7,7 @@ const getFileUpload = require('../helpers/getFileUpload');
 const tw_Customer = require('../models/tw_Customer');
 const CustomerLog = tw_Customer.CustomerLogModel;
 const Payment = require('../models/tw_Payment');
+const moment = require('moment');
 
 const tw_Receipts = new Schema({
     code: { 
@@ -109,7 +110,7 @@ tw_Receipts.statics.createReceipts = async function(data, files){
             { _id: newReceipts._id }, 
             {
                 $set: { 
-                    code: 'PT' + newReceipts._id.toString().slice(-5).toUpperCase()
+                    code: `PT/${moment().format('MMYYYY')}/${newReceipts._id.toString().slice(-5).toUpperCase()}`
                 }
             }
         );
