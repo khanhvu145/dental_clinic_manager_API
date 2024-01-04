@@ -20,6 +20,7 @@ const tw_Prescription_Config = new Schema({
                 order: { type: Number },
                 medicine: { type: String },
                 quantity: { type: Number },
+                unit: { type: String },
                 note: { type: String },
             }
         ],
