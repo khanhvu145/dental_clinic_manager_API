@@ -45,7 +45,8 @@ const ReceiptsController = {
                         "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
                         "customerPhysicalId": { $arrayElemAt: ["$customerInfo.physicalId", 0] },
                         "customerPhone": { $arrayElemAt: ["$customerInfo.phone", 0] },
-                        "examinationCode": { $arrayElemAt: ["$examinationInfo.code", 0] }
+                        "examinationCode": { $arrayElemAt: ["$examinationInfo.code", 0] },
+                        "diagnosisTreatment": { $arrayElemAt: ["$examinationInfo.diagnosisTreatment", 0] }
                     }
                 },
                 { $project: { 
@@ -184,7 +185,8 @@ const ReceiptsController = {
                         "customerGender": { $arrayElemAt: ["$customerInfo.gender", 0] },
                         "customerPhysicalId": { $arrayElemAt: ["$customerInfo.physicalId", 0] },
                         "customerPhone": { $arrayElemAt: ["$customerInfo.phone", 0] },
-                        "examinationCode": { $arrayElemAt: ["$examinationInfo.code", 0] }
+                        "examinationCode": { $arrayElemAt: ["$examinationInfo.code", 0] },
+                        "diagnosisTreatment": { $arrayElemAt: ["$examinationInfo.diagnosisTreatment", 0] }
                     }
                 },
                 { $project: { 
