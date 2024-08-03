@@ -18,6 +18,10 @@ const options = {
         url: "https://dental-clinic-manager-api-v2.onrender.com", // url
         description: "Production server", // name
       },
+      {
+        url: "https://dentalclinicmanagerapi-production.up.railway.app", // url
+        description: "Production server 2", // name
+      },
     ],
     components: {
       securitySchemes: {
